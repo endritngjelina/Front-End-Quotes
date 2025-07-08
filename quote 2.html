@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enchanted Library Quote Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #f4f4f4;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #three-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(1px);
+        }
+        
+        .quote-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 25px;
+            padding: 50px;
+            max-width: 800px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform: scale(0.95);
+            animation: float 8s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .quote-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            animation: shimmer 3s infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: scale(0.95) translateY(0px); }
+            50% { transform: scale(0.95) translateY(-15px); }
+        }
+        
+        .quote-text {
+            font-size: 1.8rem;
+            line-height: 1.6;
+            margin: 30px 0;
+            font-style: italic;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            position: relative;
+            z-index: 2;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            animation: fadeInText 1s ease-in-out forwards;
+        }
+        
+        @keyframes fadeInText {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .quote-author {
+            font-size: 1.2rem;
+            color: #ffd700;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 2;
+            opacity: 0;
+            animation: fadeInAuthor 1s ease-in-out 0.3s forwards;
+        }
+        
+        @keyframes fadeInAuthor {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .quote-author::before {
+            content: '— ';
+        }
+        
+        .controls {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 18px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.4s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .btn.secondary {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.3);
+        }
+        
+        .btn.secondary:hover {
+            box-shadow: 0 15px 40px rgba(245, 87, 108, 0.4);
+        }
+        
+        .btn.favorite {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+        }
+        
+        .btn.favorite.active {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a2e;
+        }
+        
+        .category-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .category-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .category-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .category-btn.active {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a2e;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+        }
+        
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: radial-gradient(circle, #ffd700, transparent);
+            border-radius: 50%;
+            animation: sparkle 4s infinite ease-in-out;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1) rotate(180deg); }
+        }
+        
+        .magic-burst {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.8), transparent);
+            animation: magicBurst 0.8s ease-out;
+            pointer-events: none;
+            z-index: 15;
+        }
+        
+        @keyframes magicBurst {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffd700;
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .quote-number {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .history-indicator {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .history-indicator:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .quote-history {
+            position: absolute;
+            top: 60px;
+            left: 30px;
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(10, 10, 20, 0.9);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+            display: none;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .quote-history-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            border-left: 3px solid #ffd700;
+        }
+        
+        .quote-history-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .quote-history-item .author {
+            color: #ffd700;
+            margin-top: 5px;
+            font-size: 0.85rem;
+        }
+        
+        .quote-history-item .category {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        .settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 150px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(30deg);
+        }
+        
+        .settings-panel {
+            position: absolute;
+            top: 65px;
+            right: 30px;
+            width: 250px;
+            background: rgba(10, 10, 20, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+            display: none;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .settings-panel h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+            text-align: center;
+        }
+        
+        .setting-item {
+            margin-bottom: 15px;
+        }
+        
+        .setting-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .setting-item select, .setting-item input {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-family: inherit;
+        }
+        
+        .theme-preview {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .theme-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .theme-option.active {
+            border-color: white;
+        }
+        
+        .font-size-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .font-size-controls button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .font-size-controls button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .font-size-display {
+            font-size: 0.9rem;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 15;
+            display: none;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: notification-pop 2s ease-in-out;
+            display: none;
+        }
+        
+        @keyframes notification-pop {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+        }
+        
+        .favorite-icon {
+            position: absolute;
+            top: 15px;
+            left: 30px;
+            color: #ff416c;
+            font-size: 1.5rem;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+            z-index: 3;
+        }
+        
+        .favorite-icon.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .quote-source {
+            font-size: 0.9rem;
+            margin-top: 10px;
+            opacity: 0.7;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .auto-refresh-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div id="three-container"></div>
+    <div class="particles" id="particles"></div>
+    
+    <div class="ui-overlay">
+        <div class="quote-container">
+            <div class="favorite-icon" id="favorite-icon">★</div>
+            <div class="quote-number" id="quote-number">Quote #1</div>
+            <div class="history-indicator" id="history-indicator">📜 History</div>
+            
+            <div class="category-selector">
+                <button class="category-btn active" data-category="inspirational">📚 Inspirational</button>
+                <button class="category-btn" data-category="wisdom">🧠 Wisdom</button>
+                <button class="category-btn" data-category="success">🏆 Success</button>
+                <button class="category-btn" data-category="life">🌱 Life</button>
+                <button class="category-btn" data-category="love">💖 Love</button>
+                <button class="category-btn" data-category="science">🔬 Science</button>
+                <button class="category-btn" data-category="art">🎨 Art</button>
+            </div>
+            
+            <div class="quote-text" id="quote-text">
+                "The only way to do great work is to love what you do."
+            </div>
+            
+            <div class="quote-author" id="quote-author">Steve Jobs</div>
+            
+            <div class="quote-source" id="quote-source">From "Stanford Commencement Address"</div>
+            
+            <div class="controls">
+                <button class="btn" id="prev-quote-btn">◀ Prev</button>
+                <button class="btn" id="new-quote-btn">✨ New Quote</button>
+                <button class="btn" id="next-quote-btn">Next ▶</button>
+                <button class="btn secondary" id="share-btn">📤 Share</button>
+                <button class="btn favorite" id="favorite-btn">💖 Favorite</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="quote-history" id="quote-history"></div>
+    
+    <div class="settings-btn" id="settings-btn">⚙️</div>
+    <div class="settings-panel" id="settings-panel">
+        <h3>Library Settings</h3>
+        <div class="setting-item">
+            <label for="theme-select">Theme:</label>
+            <select id="theme-select">
+                <option value="default">Midnight Library</option>
+                <option value="forest">Enchanted Forest</option>
+                <option value="sunset">Golden Sunset</option>
+                <option value="ocean">Deep Ocean</option>
+            </select>
+            <div class="theme-preview">
+                <div class="theme-option active" data-theme="default" style="background: linear-gradient(135deg, #1a1a2e, #0f3460);"></div>
+                <div class="theme-option" data-theme="forest" style="background: linear-gradient(135deg, #0d3b2d, #1c6e4a);"></div>
+                <div class="theme-option" data-theme="sunset" style="background: linear-gradient(135deg, #2c3e50, #e74c3c);"></div>
+                <div class="theme-option" data-theme="ocean" style="background: linear-gradient(135deg, #0a192f, #00b4d8);"></div>
+            </div>
+        </div>
+        <div class="setting-item">
+            <label>Quote Font Size:</label>
+            <div class="font-size-controls">
+                <button id="font-decrease">A-</button>
+                <div class="font-size-display" id="font-size">1.8rem</div>
+                <button id="font-increase">A+</button>
+            </div>
+        </div>
+        <div class="setting-item">
+            <label for="animation-speed">Animation Speed:</label>
+            <select id="animation-speed">
+                <option value="slow">Slow & Magical</option>
+                <option value="medium" selected>Medium</option>
+                <option value="fast">Fast</option>
+            </select>
+        </div>
+        <div class="setting-item">
+            <div class="auto-refresh-toggle">
+                <span>Auto Refresh:</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="auto-refresh">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overlay" id="overlay"></div>
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Enhanced Quote Database
+        const QUOTES = {
+            inspirational: [
+                { text: "The only way to do great work is to love what you do.", author: "Steve Jobs", source: "Stanford Commencement Address" },
+                { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs", source: "BusinessWeek, 2004" },
+                { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt", source: "" },
+                { text: "It is during our darkest moments that we must focus to see the light.", author: "Aristotle", source: "" },
+                { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill", source: "" },
+                { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney", source: "" },
+                { text: "Don't be afraid to give up the good to go for the great.", author: "John D. Rockefeller", source: "" },
+                { text: "If you really look closely, most overnight successes took a long time.", author: "Steve Jobs", source: "" },
+                { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt", source: "" },
+                { text: "Your time is limited, don't waste it living someone else's life.", author: "Steve Jobs", source: "Stanford Commencement Address" },
+                { text: "The harder I work, the more luck I seem to have.", author: "Thomas Jefferson", source: "" },
+                { text: "The best way to predict the future is to invent it.", author: "Alan Kay", source: "" }
+            ],
+            wisdom: [
+                { text: "The only true wisdom is in knowing you know nothing.", author: "Socrates", source: "" },
+                { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein", source: "" },
+                { text: "Yesterday is history, tomorrow is a mystery, today is a gift.", author: "Eleanor Roosevelt", source: "" },
+                { text: "The journey of a thousand miles begins with one step.", author: "Lao Tzu", source: "Tao Te Ching" },
+                { text: "He who knows that enough is enough will always have enough.", author: "Lao Tzu", source: "Tao Te Ching" },
+                { text: "The only impossible journey is the one you never begin.", author: "Tony Robbins", source: "" },
+                { text: "Wisdom is not a product of schooling but of the lifelong attempt to acquire it.", author: "Albert Einstein", source: "" },
+                { text: "Knowing yourself is the beginning of all wisdom.", author: "Aristotle", source: "" },
+                { text: "The fool doth think he is wise, but the wise man knows himself to be a fool.", author: "William Shakespeare", source: "As You Like It" },
+                { text: "Turn your wounds into wisdom.", author: "Oprah Winfrey", source: "" }
+            ],
+            success: [
+                { text: "Success is not the key to happiness. Happiness is the key to success.", author: "Albert Schweitzer", source: "" },
+                { text: "The road to success and the road to failure are almost exactly the same.", author: "Colin R. Davis", source: "" },
+                { text: "Success usually comes to those who are too busy to be looking for it.", author: "Henry David Thoreau", source: "" },
+                { text: "Don't be afraid to give up the good to go for the great.", author: "John D. Rockefeller", source: "" },
+                { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney", source: "" },
+                { text: "If you are not willing to risk the usual, you will have to settle for the ordinary.", author: "Jim Rohn", source: "" },
+                { text: "Success is stumbling from failure to failure with no loss of enthusiasm.", author: "Winston Churchill", source: "" },
+                { text: "Success is not in what you have, but who you are.", author: "Bo Bennett", source: "" },
+                { text: "The secret of success is to do the common thing uncommonly well.", author: "John D. Rockefeller", source: "" }
+            ],
+            life: [
+                { text: "Life is what happens to you while you're busy making other plans.", author: "John Lennon", source: "Beautiful Boy" },
+                { text: "The purpose of our lives is to be happy.", author: "Dalai Lama", source: "" },
+                { text: "Life is 10% what happens to you and 90% how you react to it.", author: "Charles R. Swindoll", source: "" },
+                { text: "In the end, we will remember not the words of our enemies, but the silence of our friends.", author: "Martin Luther King Jr.", source: "" },
+                { text: "Life is either a daring adventure or nothing at all.", author: "Helen Keller", source: "" },
+                { text: "The greatest glory in living lies not in never falling, but in rising every time we fall.", author: "Nelson Mandela", source: "" },
+                { text: "Life isn't about finding yourself. Life is about creating yourself.", author: "George Bernard Shaw", source: "" },
+                { text: "The unexamined life is not worth living.", author: "Socrates", source: "" },
+                { text: "Life is really simple, but we insist on making it complicated.", author: "Confucius", source: "" }
+            ],
+            love: [
+                { text: "Being deeply loved by someone gives you strength, while loving someone deeply gives you courage.", author: "Lao Tzu", source: "" },
+                { text: "The best thing to hold onto in life is each other.", author: "Audrey Hepburn", source: "" },
+                { text: "Love is composed of a single soul inhabiting two bodies.", author: "Aristotle", source: "" },
+                { text: "Where there is love there is life.", author: "Mahatma Gandhi", source: "" },
+                { text: "The greatest happiness of life is the conviction that we are loved.", author: "Victor Hugo", source: "Les Misérables" },
+                { text: "Love is not about how many days, months, or years you have been together.", author: "Unknown", source: "" },
+                { text: "We are most alive when we're in love.", author: "John Updike", source: "" },
+                { text: "Love doesn't make the world go round. Love is what makes the ride worthwhile.", author: "Franklin P. Jones", source: "" }
+            ],
+            science: [
+                { text: "The most beautiful thing we can experience is the mysterious. It is the source of all true art and science.", author: "Albert Einstein", source: "" },
+                { text: "Nothing in life is to be feared, it is only to be understood. Now is the time to understand more, so that we may fear less.", author: "Marie Curie", source: "" },
+                { text: "Science is not only a disciple of reason but, also, one of romance and passion.", author: "Stephen Hawking", source: "" },
+                { text: "Somewhere, something incredible is waiting to be known.", author: "Carl Sagan", source: "" },
+                { text: "The important thing is to never stop questioning.", author: "Albert Einstein", source: "" },
+                { text: "Science is the acceptance of what works and the rejection of what does not.", author: "Jacob Bronowski", source: "" }
+            ],
+            art: [
+                { text: "Every artist was first an amateur.", author: "Ralph Waldo Emerson", source: "" },
+                { text: "Art enables us to find ourselves and lose ourselves at the same time.", author: "Thomas Merton", source: "" },
+                { text: "Art washes away from the soul the dust of everyday life.", author: "Pablo Picasso", source: "" },
+                { text: "Creativity takes courage.", author: "Henri Matisse", source: "" },
+                { text: "The purpose of art is washing the dust of daily life off our souls.", author: "Pablo Picasso", source: "" },
+                { text: "Art is not what you see, but what you make others see.", author: "Edgar Degas", source: "" }
+            ]
+        };
+
+        // App State
+        let currentCategory = 'inspirational';
+        let currentQuoteIndex = 0;
+        let quoteCount = 1;
+        let favorites = JSON.parse(localStorage.getItem('favoriteQuotes')) || [];
+        let quoteHistory = JSON.parse(localStorage.getItem('quoteHistory')) || [];
+        let autoRefreshInterval = null;
+        let fontSize = 1.8; // in rem
+
+        // Three.js Scene Setup
+        let scene, camera, renderer, books = [], magicalParticles = [];
+        let animationId;
+
+        function initThreeJS() {
+            const container = document.getElementById('three-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x1a1a2e, 20, 100);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 25);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            scene.add(ambientLight);
+            
+            const pointLight = new THREE.PointLight(0xffd700, 1, 100);
+            pointLight.position.set(0, 10, 10);
+            scene.add(pointLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0x9370db, 0.6);
+            directionalLight.position.set(-10, 10, 5);
+            scene.add(directionalLight);
+            
+            // Create floating books
+            createFloatingBooks();
+            
+            // Create magical particles
+            createMagicalParticles();
+            
+            // Start animation
+            animate();
+        }
+
+        function createBook(x, y, z, color = 0x8B4513, title = "") {
+            const book = new THREE.Group();
+            
+            // Book cover
+            const coverGeometry = new THREE.BoxGeometry(1.5, 2, 0.3);
+            const coverMaterial = new THREE.MeshLambertMaterial({ color: color });
+            const cover = new THREE.Mesh(coverGeometry, coverMaterial);
+            book.add(cover);
+            
+            // Book pages
+            const pagesGeometry = new THREE.BoxGeometry(1.4, 1.9, 0.25);
+            const pagesMaterial = new THREE.MeshLambertMaterial({ color: 0xfffff0 });
+            const pages = new THREE.Mesh(pagesGeometry, pagesMaterial);
+            pages.position.z = 0.025;
+            book.add(pages);
+            
+            // Book spine
+            const spineGeometry = new THREE.BoxGeometry(0.1, 2, 0.32);
+            const spineMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+            const spine = new THREE.Mesh(spineGeometry, spineMaterial);
+            spine.position.x = -0.75;
+            book.add(spine);
+            
+            // Add title to spine
+            if (title) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const context = canvas.getContext('2d');
+                context.fillStyle = '#ffd700';
+                context.font = 'bold 24px Georgia';
+                context.textAlign = 'center';
+                
+                // Rotate text vertically
+                context.save();
+                context.translate(128, 128);
+                context.rotate(-Math.PI / 2);
+                context.fillText(title, 0, 0);
+                context.restore();
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                const titleMaterial = new THREE.MeshBasicMaterial({ 
+                    map: texture, 
+                    transparent: true,
+                    side: THREE.DoubleSide
+                });
+                
+                const titleGeometry = new THREE.PlaneGeometry(0.2, 1.8);
+                const titlePlane = new THREE.Mesh(titleGeometry, titleMaterial);
+                titlePlane.position.set(-0.75, 0, 0.16);
+                titlePlane.rotation.y = Math.PI / 2;
+                book.add(titlePlane);
+            }
+            
+            book.position.set(x, y, z);
+            book.userData = {
+                originalY: y,
+                rotationSpeed: (Math.random() - 0.5) * 0.01,
+                floatSpeed: 0.5 + Math.random() * 0.5,
+                floatOffset: Math.random() * Math.PI * 2
+            };
+            
+            return book;
+        }
+
+        function createFloatingBooks() {
+            const colors = [0x8B4513, 0x654321, 0x4A4A4A, 0x2F4F4F, 0x800080, 0x008080];
+            const titles = ["Wisdom", "Dreams", "Courage", "Hope", "Magic", "Truth", "Inspire", "Believe", "Create", "Imagine"];
+            
+            for (let i = 0; i < 15; i++) {
+                const x = (Math.random() - 0.5) * 50;
+                const y = Math.random() * 15 + 5;
+                const z = (Math.random() - 0.5) * 40;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const title = titles[Math.floor(Math.random() * titles.length)];
+                
+                const book = createBook(x, y, z, color, title);
+                books.push(book);
+                scene.add(book);
+            }
+        }
+
+        function createMagicalParticles() {
+            const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+            const particleMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffd700, 
+                transparent: true, 
+                opacity: 0.8 
+            });
+            
+            for (let i = 0; i < 150; i++) {
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                particle.position.set(
+                    (Math.random() - 0.5) * 60,
+                    Math.random() * 30,
+                    (Math.random() - 0.5) * 60
+                );
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02
+                    ),
+                    originalOpacity: 0.3 + Math.random() * 0.5,
+                    pulseSpeed: 0.5 + Math.random() * 1.5
+                };
+                magicalParticles.push(particle);
+                scene.add(particle);
+            }
+        }
+        
+        function triggerMagicEffect() {
+            // Create burst of particles
+            for (let i = 0; i < 50; i++) {
+                const particleGeometry = new THREE.SphereGeometry(0.05 + Math.random() * 0.1, 8, 8);
+                const particleMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xffd700, 
+                    transparent: true, 
+                    opacity: 0.8 
+                });
+                
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                particle.position.set(0, 5, 0);
+                
+                // Random velocity
+                const velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.2,
+                    (Math.random() - 0.5) * 0.2 + 0.1,
+                    (Math.random() - 0.5) * 0.2
+                );
+                
+                scene.add(particle);
+                
+                // Animate and remove
+                let time = 0;
+                const animateParticle = () => {
+                    time += 0.1;
+                    particle.position.add(velocity);
+                    particle.material.opacity = 0.8 - time * 0.1;
+                    
+                    if (time < 8 && particle.material.opacity > 0) {
+                        requestAnimationFrame(animateParticle);
+                    } else {
+                        scene.remove(particle);
+                    }
+                };
+                
+                animateParticle();
+            }
+        }
+
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+            
+            // Animate floating books
+            books.forEach((book) => {
+                book.rotation.y += book.userData.rotationSpeed;
+                book.rotation.x = Math.sin(time * book.userData.floatSpeed + book.userData.floatOffset) * 0.1;
+                book.position.y = book.userData.originalY + Math.sin(time * book.userData.floatSpeed + book.userData.floatOffset) * 2;
+            });
+            
+            // Animate magical particles
+            magicalParticles.forEach(particle => {
+                particle.position.add(particle.userData.velocity);
+                particle.material.opacity = particle.userData.originalOpacity * 
+                    (0.5 + 0.5 * Math.sin(time * particle.userData.pulseSpeed));
+                
+                // Reset particle position if it goes too far
+                if (particle.position.length() > 40) {
+                    particle.position.set(
+                        (Math.random() - 0.5) * 60,
+                        Math.random() * 30,
+                        (Math.random() - 0.5) * 60
+                    );
+                }
+            });
+            
+            // Gentle camera movement
+            camera.position.x = Math.sin(time * 0.2) * 3;
+            camera.position.y = 8 + Math.sin(time * 0.3) * 2;
+            camera.lookAt(0, 0, 0);
+            
+            renderer.render(scene, camera);
+        }
+
+        // Quote Functions
+        function getRandomQuote(category) {
+            const categoryQuotes = QUOTES[category];
+            const randomIndex = Math.floor(Math.random() * categoryQuotes.length);
+            return { ...categoryQuotes[randomIndex], index: randomIndex };
+        }
+
+        function displayQuote(quote, category) {
+            const quoteText = document.getElementById('quote-text');
+            const quoteAuthor = document.getElementById('quote-author');
+            const quoteNumber = document.getElementById('quote-number');
+            const quoteSource = document.getElementById('quote-source');
+            const favoriteIcon = document.getElementById('favorite-icon');
+            
+            // Add fade out effect
+            quoteText.style.opacity = '0';
+            quoteAuthor.style.opacity = '0';
+            quoteSource.style.opacity = '0';
+            
+            setTimeout(() => {
+                quoteText.textContent = `"${quote.text}"`;
+                quoteAuthor.textContent = quote.author;
+                quoteSource.textContent = quote.source ? `From "${quote.source}"` : '';
+                quoteNumber.textContent = `Quote #${quoteCount}`;
+                
+                // Check if quote is favorited
+                const isFavorited = favorites.some(fav => 
+                    fav.text === quote.text && fav.author === quote.author
+                );
+                favoriteIcon.classList.toggle('active', isFavorited);
+                
+                // Trigger fade in animation
+                quoteText.style.animation = 'none';
+                quoteAuthor.style.animation = 'none';
+                quoteSource.style.animation = 'none';
+                
+                setTimeout(() => {
+                    quoteText.style.animation = 'fadeInText 1s ease-in-out forwards';
+                    quoteAuthor.style.animation = 'fadeInAuthor 1s ease-in-out 0.3s forwards';
+                    quoteSource.style.animation = 'fadeInAuthor 1s ease-in-out 0.5s forwards';
+                }, 10);
+                
+                // Add to history
+                addToHistory(quote, category);
+            }, 300);
+        }
+
+        function createMagicBurst(event) {
+            const burst = document.createElement('div');
+            burst.className = 'magic-burst';
+            burst.style.left = event.clientX - 50 + 'px';
+            burst.style.top = event.clientY - 50 + 'px';
+            document.body.appendChild(burst);
+            
+            setTimeout(() => {
+                document.body.removeChild(burst);
+            }, 800);
+        }
+
+        function createUIParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 4 + 's';
+                particle.style.animationDuration = (2 + Math.random() * 2) + 's';
+                container.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (container.contains(particle)) {
+                        container.removeChild(particle);
+                    }
+                }, 4000);
+            }
+        }
+
+        function newQuote() {
+            const quote = getRandomQuote(currentCategory);
+            displayQuote(quote, currentCategory);
+            quoteCount++;
+            createUIParticles();
+            triggerMagicEffect();
+        }
+        
+        function nextQuote() {
+            currentQuoteIndex = (currentQuoteIndex + 1) % QUOTES[currentCategory].length;
+            const quote = QUOTES[currentCategory][currentQuoteIndex];
+            displayQuote(quote, currentCategory);
+            quoteCount++;
+            createUIParticles();
+        }
+        
+        function prevQuote() {
+            currentQuoteIndex = (currentQuoteIndex - 1 + QUOTES[currentCategory].length) % QUOTES[currentCategory].length;
+            const quote = QUOTES[currentCategory][currentQuoteIndex];
+            displayQuote(quote, currentCategory);
+            quoteCount++;
+            createUIParticles();
+        }
+
+        function shareQuote() {
+            const quoteText = document.getElementById('quote-text').textContent;
+            const quoteAuthor = document.getElementById('quote-author').textContent;
+            const shareText = `${quoteText} ${quoteAuthor}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Inspirational Quote',
+                    text: shareText
+                });
+            } else {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    showNotification('Quote copied to clipboard! ✨');
+                });
+            }
+        }
+
+        function toggleFavorite() {
+            const quoteText = document.getElementById('quote-text').textContent;
+            const quoteAuthor = document.getElementById('quote-author').textContent;
+            const quote = { 
+                text: quoteText.replace(/^"|"$/g, ''), 
+                author: quoteAuthor, 
+                category: currentCategory,
+                source: document.getElementById('quote-source').textContent.replace('From "', '').replace('"', '')
+            };
+            
+            const favoriteIcon = document.getElementById('favorite-icon');
+            const index = favorites.findIndex(fav => fav.text === quote.text);
+            
+            if (index > -1) {
+                favorites.splice(index, 1);
+                favoriteIcon.classList.remove('active');
+                showNotification('Removed from favorites 💔');
+            } else {
+                favorites.push(quote);
+                favoriteIcon.classList.add('active');
+                showNotification('Added to favorites! 💖');
+            }
+            
+            localStorage.setItem('favoriteQuotes', JSON.stringify(favorites));
+        }
+        
+        function addToHistory(quote, category) {
+            // Add to history if not already present
+            const exists = quoteHistory.some(item => 
+                item.text === quote.text && item.author === quote.author
+            );
+            
+            if (!exists) {
+                quoteHistory.unshift({
+                    text: quote.text,
+                    author: quote.author,
+                    category: category,
+                    source: quote.source,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Keep only last 20 history items
+                if (quoteHistory.length > 20) {
+                    quoteHistory.pop();
+                }
+                
+                localStorage.setItem('quoteHistory', JSON.stringify(quoteHistory));
+                updateHistoryUI();
+            }
+        }
+        
+        function updateHistoryUI() {
+            const historyContainer = document.getElementById('quote-history');
+            historyContainer.innerHTML = '';
+            
+            quoteHistory.forEach((quote, index) => {
+                const item = document.createElement('div');
+                item.className = 'quote-history-item';
+                item.innerHTML = `
+                    <div class="text">"${quote.text}"</div>
+                    <div class="author">${quote.author}</div>
+                    <div class="category">${quote.category.charAt(0).toUpperCase() + quote.category.slice(1)}</div>
+                `;
+                
+                item.addEventListener('click', () => {
+                    displayQuote(quote, quote.category);
+                    quoteCount++;
+                    document.getElementById('quote-history').style.display = 'none';
+                    document.getElementById('overlay').style.display = 'none';
+                });
+                
+                historyContainer.appendChild(item);
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 2000);
+        }
+
+        function switchCategory(category) {
+            currentCategory = category;
+            currentQuoteIndex = 0;
+            
+            // Update active button
+            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-category="${category}"]`).classList.add('active');
+            
+            // Get new quote from selected category
+            const quote = getRandomQuote(category);
+            displayQuote(quote, category);
+            quoteCount++;
+        }
+        
+        function changeTheme(theme) {
+            let gradient;
+            switch(theme) {
+                case 'forest':
+                    gradient = 'linear-gradient(135deg, #0d3b2d 0%, #1c6e4a 50%, #0a3b29 100%)';
+                    break;
+                case 'sunset':
+                    gradient = 'linear-gradient(135deg, #2c3e50 0%, #e74c3c 50%, #c0392b 100%)';
+                    break;
+                case 'ocean':
+                    gradient = 'linear-gradient(135deg, #0a192f 0%, #00b4d8 50%, #0077b6 100%)';
+                    break;
+                default: // default
+                    gradient = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
+            }
+            document.body.style.background = gradient;
+            
+            // Update active theme preview
+            document.querySelectorAll('.theme-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            document.querySelector(`.theme-option[data-theme="${theme}"]`).classList.add('active');
+            
+            // Update theme selector
+            document.getElementById('theme-select').value = theme;
+        }
+        
+        function adjustFontSize(direction) {
+            if (direction === 'increase' && fontSize < 2.5) {
+                fontSize += 0.1;
+            } else if (direction === 'decrease' && fontSize > 1.2) {
+                fontSize -= 0.1;
+            }
+            
+            document.getElementById('quote-text').style.fontSize = `${fontSize}rem`;
+            document.getElementById('font-size').textContent = `${fontSize.toFixed(1)}rem`;
+        }
+        
+        function setupAutoRefresh() {
+            const autoRefresh = document.getElementById('auto-refresh');
+            
+            autoRefresh.addEventListener('change', () => {
+                if (autoRefresh.checked) {
+                    autoRefreshInterval = setInterval(newQuote, 10000);
+                    showNotification('Auto refresh enabled 🔄');
+                } else {
+                    clearInterval(autoRefreshInterval);
+                    showNotification('Auto refresh disabled ⏹️');
+                }
+            });
+        }
+
+        // Event Listeners
+        document.getElementById('new-quote-btn').addEventListener('click', (e) => {
+            createMagicBurst(e);
+            newQuote();
+        });
+        
+        document.getElementById('next-quote-btn').addEventListener('click', (e) => {
+            createMagicBurst(e);
+            nextQuote();
+        });
+        
+        document.getElementById('prev-quote-btn').addEventListener('click', (e) => {
+            createMagicBurst(e);
+            prevQuote();
+        });
+
+        document.getElementById('share-btn').addEventListener('click', shareQuote);
+        document.getElementById('favorite-btn').addEventListener('click', toggleFavorite);
+        
+        document.getElementById('favorite-icon').addEventListener('click', toggleFavorite);
+
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                createMagicBurst(e);
+                switchCategory(btn.dataset.category);
+            });
+        });
+        
+        document.getElementById('history-indicator').addEventListener('click', () => {
+            const historyPanel = document.getElementById('quote-history');
+            const overlay = document.getElementById('overlay');
+            
+            if (historyPanel.style.display === 'block') {
+                historyPanel.style.display = 'none';
+                overlay.style.display = 'none';
+            } else {
+                historyPanel.style.display = 'block';
+                overlay.style.display = 'block';
+            }
+        });
+        
+        document.getElementById('overlay').addEventListener('click', () => {
+            document.getElementById('quote-history').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('settings-panel').style.display = 'none';
+        });
+        
+        document.getElementById('settings-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const settingsPanel = document.getElementById('settings-panel');
+            const overlay = document.getElementById('overlay');
+            
+            if (settingsPanel.style.display === 'block') {
+                settingsPanel.style.display = 'none';
+                overlay.style.display = 'none';
+            } else {
+                settingsPanel.style.display = 'block';
+                overlay.style.display = 'block';
+            }
+        });
+        
+        document.querySelectorAll('.theme-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                changeTheme(opt.dataset.theme);
+            });
+        });
+        
+        document.getElementById('theme-select').addEventListener('change', (e) => {
+            changeTheme(e.target.value);
+        });
+        
+        document.getElementById('font-increase').addEventListener('click', () => {
+            adjustFontSize('increase');
+        });
+        
+        document.getElementById('font-decrease').addEventListener('click', () => {
+            adjustFontSize('decrease');
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize
+        initThreeJS();
+        const initialQuote = getRandomQuote(currentCategory);
+        displayQuote(initialQuote, currentCategory);
+        
+        // Create initial particles
+        setTimeout(createUIParticles, 1000);
+        setInterval(createUIParticles, 8000); // Continuous ambient particles
+        
+        // Update history UI
+        updateHistoryUI();
+        
+        // Setup auto refresh
+        setupAutoRefresh();
+    </script>
+</body>
+</html>
