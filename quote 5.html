@@ -1,0 +1,2373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuoteVerse Pro - Premium Quote Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+            transition: background 0.5s ease;
+        }
+        
+        body.dark-mode {
+            background: linear-gradient(135deg, #0f1b31 0%, #1a365d 100%);
+        }
+        
+        #three-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .dark-mode .glass-morphism {
+            background: rgba(15, 25, 45, 0.6);
+            border: 1px solid rgba(100, 150, 255, 0.2);
+        }
+        
+        .header {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            font-size: 1.5rem;
+        }
+        
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 12px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .main-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 1000px;
+            z-index: 10;
+            display: flex;
+            gap: 30px;
+            height: 70vh;
+        }
+        
+        .quote-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            animation: slideInLeft 0.8s ease-out;
+        }
+        
+        .controls-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 30px;
+            animation: slideInRight 0.8s ease-out;
+        }
+        
+        .quote-display {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+        
+        .quote-text {
+            font-size: 2.2rem;
+            line-height: 1.4;
+            font-weight: 300;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.5s ease;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .dark-mode .quote-text {
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .quote-author {
+            font-size: 1.3rem;
+            color: #ffd700;
+            font-weight: 500;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        
+        .quote-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        .category-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .category-btn {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .category-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .category-btn.active {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a2e;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+        }
+        
+        .btn-accent {
+            background: linear-gradient(45deg, #ffd89b, #19547b);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 216, 155, 0.4);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .advanced-features {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .feature-section {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .dark-mode .feature-section {
+            background: rgba(15, 25, 45, 0.3);
+            border: 1px solid rgba(100, 150, 255, 0.1);
+        }
+        
+        .feature-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #ffd700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .search-container {
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 15px 12px 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        .dark-mode .search-input {
+            background: rgba(15, 25, 45, 0.3);
+            border: 1px solid rgba(100, 150, 255, 0.2);
+        }
+        
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .favorites-list {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .favorite-item {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dark-mode .favorite-item {
+            background: rgba(15, 25, 45, 0.3);
+        }
+        
+        .favorite-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .favorite-item .remove-btn {
+            color: #ff6b6b;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .favorite-item .remove-btn:hover {
+            background: rgba(255, 107, 107, 0.2);
+        }
+        
+        .settings-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+        
+        .toggle-switch {
+            width: 50px;
+            height: 25px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .dark-mode .toggle-switch {
+            background: rgba(100, 150, 255, 0.2);
+        }
+        
+        .toggle-switch.active {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+        
+        .toggle-switch.active::after {
+            transform: translateX(25px);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 1000;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            animation: slideInNotification 0.5s ease-out, fadeOut 3s forwards;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .notification.success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            color: #1a5d1a;
+        }
+        
+        .notification.info {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .notification.warning {
+            background: linear-gradient(45deg, #ffd89b, #ff9a3d);
+            color: #7d4a00;
+        }
+        
+        .typing-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-left: 10px;
+            animation: spin 1s linear infinite;
+        }
+        
+        .reading-progress {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            z-index: 100;
+        }
+        
+        .dark-mode .reading-progress {
+            background: rgba(100, 150, 255, 0.1);
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ffed4e);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .word-count {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+        
+        .animation-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .mini-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .dark-mode .mini-btn {
+            background: rgba(100, 150, 255, 0.2);
+        }
+        
+        .mini-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        @keyframes slideInLeft {
+            from { transform: translateX(-100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideInNotification {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            0%, 70% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .challenge-progress {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .challenge-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ffed4e);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .achievement-badge {
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            padding: 10px 15px;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a2e;
+            border-radius: 20px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideInLeft 0.5s ease-out, fadeOut 3s forwards;
+        }
+        
+        /* New Features */
+        .ai-generated-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(45deg, #00c9ff, #92fe9d);
+            color: #0a2e2e;
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .voice-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .voice-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .voice-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .voice-btn.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+        
+        .quote-insights {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .insight-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        
+        .insight-value {
+            font-weight: 600;
+            color: #ffd700;
+            font-size: 1.1rem;
+            margin-top: 5px;
+        }
+        
+        .insight-label {
+            opacity: 0.8;
+            font-size: 0.75rem;
+        }
+        
+        .user-profile {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+        
+        .profile-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .profile-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .profile-dropdown {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            padding: 10px;
+            min-width: 180px;
+            display: none;
+            z-index: 200;
+        }
+        
+        .profile-dropdown.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .profile-item {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .profile-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .profile-item.active {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+        
+        .trending-panel {
+            margin-top: 15px;
+        }
+        
+        .trending-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #ffd700;
+        }
+        
+        .trending-item {
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .trending-item .trend-icon {
+            color: #ff6b6b;
+        }
+        
+        .quote-analysis {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            max-width: 300px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+        
+        .quote-analysis.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .analysis-title {
+            color: #ffd700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sentiment-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        
+        .sentiment-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f5576c, #92fe9d);
+        }
+        
+        .complexity-meter {
+            display: flex;
+            gap: 4px;
+            margin-top: 10px;
+        }
+        
+        .complexity-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .complexity-dot.active {
+            background: #ffd700;
+        }
+        
+        .nvidia-theme {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .nvidia-logo {
+            color: #76b900;
+            font-weight: 700;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+                gap: 20px;
+                top: 60%;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+                padding: 15px;
+            }
+            
+            .stats-panel {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .quote-text {
+                font-size: 1.6rem;
+                min-height: 150px;
+            }
+            
+            .category-selector {
+                grid-template-columns: 1fr;
+            }
+            
+            .animation-controls {
+                bottom: 70px;
+            }
+            
+            .quote-analysis {
+                position: relative;
+                bottom: auto;
+                left: auto;
+                margin-top: 20px;
+                max-width: 100%;
+            }
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #ffd700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .quote-rating {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 15px;
+        }
+        
+        .star {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .star.active {
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        
+        .daily-challenge {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(45deg, rgba(255, 215, 0, 0.1), rgba(255, 237, 78, 0.1));
+            border-radius: 12px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .dark-mode .daily-challenge {
+            background: linear-gradient(45deg, rgba(255, 215, 0, 0.05), rgba(255, 237, 78, 0.05));
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .challenge-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #ffd700;
+        }
+        
+        .challenge-text {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+        
+        .achievements-panel {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .achievement-item {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        .achievement-item.unlocked {
+            background: linear-gradient(45deg, rgba(255, 215, 0, 0.15), rgba(255, 237, 78, 0.15));
+            opacity: 1;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .achievement-icon {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div id="three-container"></div>
+    
+    <header class="header glass-morphism">
+        <div class="logo">
+            <i class="fas fa-quote-left"></i>
+            QuoteVerse Pro
+        </div>
+        <div class="stats-panel">
+            <div class="stat-item">
+                <span>📊</span>
+                <span id="quotes-read">0</span>
+            </div>
+            <div class="stat-item">
+                <span>💖</span>
+                <span id="favorites-count">0</span>
+            </div>
+            <div class="stat-item">
+                <span>🏆</span>
+                <span id="streak-count">0</span>
+            </div>
+            <div class="stat-item">
+                <span>⭐</span>
+                <span id="rating-avg">0.0</span>
+            </div>
+        </div>
+        <div class="user-profile">
+            <button class="profile-btn" id="profile-btn">
+                <i class="fas fa-user"></i>
+            </button>
+            <div class="profile-dropdown" id="profile-dropdown">
+                <div class="profile-item active" data-profile="default">Default Profile</div>
+                <div class="profile-item" data-profile="professional">Professional</div>
+                <div class="profile-item" data-profile="inspirational">Inspirational</div>
+                <div class="profile-item" id="new-profile-btn">
+                    <i class="fas fa-plus"></i> New Profile
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="main-container">
+        <div class="quote-panel glass-morphism">
+            <div class="quote-display">
+                <div class="ai-generated-tag" id="ai-tag">
+                    <i class="fas fa-brain"></i> AI Generated
+                </div>
+                <div class="quote-text" id="quote-text">
+                    "The greatest glory in living lies not in never falling, but in rising every time we fall."
+                </div>
+                <div class="quote-author" id="quote-author">Nelson Mandela</div>
+                <div class="quote-rating" id="quote-rating">
+                    <span class="star" data-rating="1">⭐</span>
+                    <span class="star" data-rating="2">⭐</span>
+                    <span class="star" data-rating="3">⭐</span>
+                    <span class="star" data-rating="4">⭐</span>
+                    <span class="star" data-rating="5">⭐</span>
+                </div>
+                <div class="quote-meta">
+                    <span id="quote-category">Life</span>
+                    <span id="quote-length">Words: 18</span>
+                    <span id="read-time">~8s read</span>
+                </div>
+                <div class="voice-controls">
+                    <button class="voice-btn" id="play-btn" title="Read aloud">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button class="voice-btn" id="pause-btn-voice" title="Pause" disabled>
+                        <i class="fas fa-pause"></i>
+                    </button>
+                    <button class="voice-btn" id="stop-btn" title="Stop">
+                        <i class="fas fa-stop"></i>
+                    </button>
+                </div>
+                <div class="quote-insights">
+                    <div class="insight-card">
+                        <div class="insight-value" id="sentiment-score">76%</div>
+                        <div class="insight-label">Positive Sentiment</div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-value" id="complexity">Medium</div>
+                        <div class="insight-label">Complexity</div>
+                    </div>
+                </div>
+            </div>
+            <div class="word-count" id="word-count">18 words</div>
+            <div class="quote-analysis" id="quote-analysis">
+                <div class="analysis-title">
+                    <i class="fas fa-chart-line"></i> Quote Analysis
+                </div>
+                <div class="sentiment-bar">
+                    <div class="sentiment-fill" id="sentiment-fill" style="width: 76%"></div>
+                </div>
+                <div>Positivity: 76%</div>
+                <div class="complexity-meter">
+                    <div class="complexity-dot active"></div>
+                    <div class="complexity-dot active"></div>
+                    <div class="complexity-dot active"></div>
+                    <div class="complexity-dot"></div>
+                    <div class="complexity-dot"></div>
+                </div>
+                <div style="margin-top: 8px; font-size: 0.8rem;">
+                    Keywords: <span id="keywords">glory, living, falling, rising</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls-panel glass-morphism">
+            <div class="category-selector">
+                <button class="category-btn active" data-category="professional">
+                    <i class="fas fa-briefcase"></i> Professional
+                </button>
+                <button class="category-btn" data-category="inspirational">
+                    <i class="fas fa-magic"></i> Inspirational
+                </button>
+                <button class="category-btn" data-category="wisdom">
+                    <i class="fas fa-brain"></i> Wisdom
+                </button>
+                <button class="category-btn" data-category="success">
+                    <i class="fas fa-trophy"></i> Success
+                </button>
+                <button class="category-btn" data-category="life">
+                    <i class="fas fa-leaf"></i> Life
+                </button>
+                <button class="category-btn" data-category="mindset">
+                    <i class="fas fa-lightbulb"></i> Mindset
+                </button>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="new-quote-btn">
+                    <i class="fas fa-bolt"></i> New Quote
+                </button>
+                <button class="btn btn-secondary" id="favorite-btn">
+                    <i class="fas fa-heart"></i> Add to Favorites
+                </button>
+                <button class="btn btn-accent" id="share-btn">
+                    <i class="fas fa-share-alt"></i> Share Quote
+                </button>
+                <button class="btn" id="ai-generate-btn" style="background: linear-gradient(45deg, #00c9ff, #92fe9d);">
+                    <i class="fas fa-robot"></i> Generate AI Quote
+                </button>
+            </div>
+            
+            <div class="advanced-features">
+                <div class="feature-section">
+                    <div class="feature-title">
+                        <i class="fas fa-search"></i> Search Quotes
+                    </div>
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" id="search-input" placeholder="Search by keyword or author...">
+                    </div>
+                </div>
+                
+                <div class="feature-section">
+                    <div class="feature-title">
+                        <i class="fas fa-heart"></i> My Favorites
+                    </div>
+                    <div class="favorites-list" id="favorites-list">
+                        <div class="favorite-item">No favorites yet. Start adding some!</div>
+                    </div>
+                </div>
+                
+                <div class="feature-section">
+                    <div class="feature-title">
+                        <i class="fas fa-trophy"></i> Daily Challenge
+                    </div>
+                    <div class="daily-challenge">
+                        <div class="challenge-title">Today's Focus</div>
+                        <div class="challenge-text">Read 5 quotes about success</div>
+                        <div class="challenge-progress">
+                            <div class="challenge-progress-bar" id="challenge-progress-bar"></div>
+                        </div>
+                    </div>
+                    <div class="achievements-panel">
+                        <div class="achievement-item">
+                            <div class="achievement-icon"><i class="fas fa-medal"></i></div>
+                            <div>First Quote</div>
+                        </div>
+                        <div class="achievement-item">
+                            <div class="achievement-icon"><i class="fas fa-star"></i></div>
+                            <div>5 Quotes</div>
+                        </div>
+                        <div class="achievement-item">
+                            <div class="achievement-icon"><i class="fas fa-crown"></i></div>
+                            <div>10 Quotes</div>
+                        </div>
+                        <div class="achievement-item">
+                            <div class="achievement-icon"><i class="fas fa-gem"></i></div>
+                            <div>Master Reader</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="trending-panel">
+                    <div class="trending-title">
+                        <i class="fas fa-fire"></i> Trending Today
+                    </div>
+                    <div class="trending-item">
+                        <i class="fas fa-arrow-up trend-icon"></i> AI in Business
+                    </div>
+                    <div class="trending-item">
+                        <i class="fas fa-arrow-up trend-icon"></i> Leadership
+                    </div>
+                    <div class="trending-item">
+                        <i class="fas fa-arrow-up trend-icon"></i> Innovation
+                    </div>
+                </div>
+                
+                <div class="feature-section">
+                    <div class="feature-title">
+                        <i class="fas fa-cog"></i> Settings
+                    </div>
+                    <div class="settings-panel">
+                        <div class="setting-item">
+                            <span><i class="fas fa-book-reader"></i> Auto-read mode</span>
+                            <div class="toggle-switch" id="auto-read-toggle"></div>
+                        </div>
+                        <div class="setting-item">
+                            <span><i class="fas fa-volume-up"></i> Sound effects</span>
+                            <div class="toggle-switch" id="sound-toggle"></div>
+                        </div>
+                        <div class="setting-item">
+                            <span><i class="fas fa-bell"></i> Daily notifications</span>
+                            <div class="toggle-switch" id="notifications-toggle"></div>
+                        </div>
+                        <div class="setting-item">
+                            <span><i class="fas fa-robot"></i> AI Suggestions</span>
+                            <div class="toggle-switch" id="ai-toggle"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="reading-progress">
+        <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    
+    <div class="animation-controls">
+        <button class="mini-btn" id="pause-btn" title="Pause animations">
+            <i class="fas fa-pause"></i>
+        </button>
+        <button class="mini-btn" id="fullscreen-btn" title="Fullscreen">
+            <i class="fas fa-expand"></i>
+        </button>
+        <button class="mini-btn" id="theme-btn" title="Toggle theme">
+            <i class="fas fa-moon"></i>
+        </button>
+        <button class="mini-btn" id="insight-btn" title="Show insights">
+            <i class="fas fa-lightbulb"></i>
+        </button>
+    </div>
+    
+    <div class="nvidia-theme">
+        <span class="nvidia-logo">NVIDIA</span> Inspired Design
+    </div>
+    
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text" style="margin-top: 20px; color: white; font-size: 1.2rem;">
+            Generating AI-powered quote...
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Quote Database with Premium Content
+        const QUOTES = {
+            professional: [
+                { text: "Control your ego when you're winning. Control your thoughts when you're losing. If you can do that, you can do anything.", author: "Modern Wisdom", rating: 4.8, tags: ["control", "ego", "winning", "mindset"] },
+                { text: "To offend a strong man, tell him a lie. To offend a weak man, tell him the truth.", author: "Modern Wisdom", rating: 4.6, tags: ["truth", "strength", "character"] },
+                { text: "A rich man buying you something doesn't mean anything, but a busy man giving you his time means everything.", author: "Anonymous", rating: 4.7, tags: ["time", "value", "priorities"] },
+                { text: "I learned that courage was not the absence of fear, but the triumph over it.", author: "Nelson Mandela", rating: 4.9, tags: ["courage", "fear", "triumph"] },
+                { text: "Success is not final, failure is not fatal: It is the courage to continue that counts.", author: "Winston Churchill", rating: 4.8, tags: ["success", "failure", "courage", "persistence"] },
+                { text: "Reality depends on the angle from which you look at it.", author: "Modern Philosophy", rating: 4.5, tags: ["perspective", "reality", "viewpoint"] },
+                { text: "If familiarity mattered, water wouldn't boil a fish.", author: "Anonymous", rating: 4.3, tags: ["familiarity", "adaptation", "environment"] },
+                { text: "The only way to do great work is to love what you do.", author: "Steve Jobs", rating: 4.8, tags: ["passion", "work", "greatness"] },
+                { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs", rating: 4.7, tags: ["innovation", "leadership", "differentiation"] },
+                { text: "Your network is your net worth.", author: "Porter Gale", rating: 4.4, tags: ["networking", "relationships", "value"] }
+            ],
+            inspirational: [
+                { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt", rating: 4.8, tags: ["dreams", "future", "belief"] },
+                { text: "It is during our darkest moments that we must focus to see the light.", author: "Aristotle", rating: 4.9, tags: ["darkness", "light", "focus", "hope"] },
+                { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney", rating: 4.6, tags: ["action", "starting", "execution"] },
+                { text: "You are never too old to set another goal or to dream a new dream.", author: "C.S. Lewis", rating: 4.7, tags: ["age", "goals", "dreams"] },
+                { text: "The only limit to our realization of tomorrow is our doubts of today.", author: "Franklin D. Roosevelt", rating: 4.8, tags: ["limits", "doubt", "tomorrow"] },
+                { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt", rating: 4.5, tags: ["belief", "confidence", "progress"] }
+            ],
+            wisdom: [
+                { text: "Imagine reading a book with no way to turn back the page. How carefully would you read it? That's life.", author: "Life Philosophy", rating: 4.9, tags: ["life", "attention", "mindfulness", "presence"] },
+                { text: "Maybe you've always been happy, but the world, social media and external comparisons have convinced you that you can't possibly be.", author: "Modern Psychology", rating: 4.6, tags: ["happiness", "comparison", "social media", "contentment"] },
+                { text: "The only true wisdom is in knowing you know nothing.", author: "Socrates", rating: 4.8, tags: ["wisdom", "knowledge", "humility"] },
+                { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein", rating: 4.7, tags: ["difficulty", "opportunity", "challenge"] },
+                { text: "Yesterday is history, tomorrow is a mystery, today is a gift.", author: "Eleanor Roosevelt", rating: 4.6, tags: ["time", "present", "gift"] },
+                { text: "The journey of a thousand miles begins with one step.", author: "Lao Tzu", rating: 4.8, tags: ["journey", "beginning", "progress"] }
+            ],
+            success: [
+                { text: "Success is not the key to happiness. Happiness is the key to success.", author: "Albert Schweitzer", rating: 4.7, tags: ["success", "happiness", "fulfillment"] },
+                { text: "The road to success and the road to failure are almost exactly the same.", author: "Colin R. Davis", rating: 4.5, tags: ["success", "failure", "path"] },
+                { text: "Success usually comes to those who are too busy to be looking for it.", author: "Henry David Thoreau", rating: 4.6, tags: ["success", "focus", "work"] },
+                { text: "Don't be afraid to give up the good to go for the great.", author: "John D. Rockefeller", rating: 4.8, tags: ["excellence", "sacrifice", "greatness"] },
+                { text: "I find that the harder I work, the more luck I seem to have.", author: "Thomas Jefferson", rating: 4.7, tags: ["work", "luck", "effort"] }
+            ],
+            life: [
+                { text: "Life is what happens to you while you're busy making other plans.", author: "John Lennon", rating: 4.6, tags: ["life", "plans", "present"] },
+                { text: "The purpose of our lives is to be happy.", author: "Dalai Lama", rating: 4.8, tags: ["purpose", "happiness", "life"] },
+                { text: "Life is 10% what happens to you and 90% how you react to it.", author: "Charles R. Swindoll", rating: 4.7, tags: ["life", "reaction", "attitude"] },
+                { text: "Life is either a daring adventure or nothing at all.", author: "Helen Keller", rating: 4.5, tags: ["life", "adventure", "courage"] },
+                { text: "The greatest glory in living lies not in never falling, but in rising every time we fall.", author: "Nelson Mandela", rating: 4.9, tags: ["resilience", "falling", "rising"] }
+            ],
+            mindset: [
+                { text: "The mind is everything. What you think you become.", author: "Buddha", rating: 4.8, tags: ["mind", "thoughts", "becoming"] },
+                { text: "Whether you think you can or you think you can't, you're right.", author: "Henry Ford", rating: 4.7, tags: ["thinking", "belief", "capability"] },
+                { text: "The only person you are destined to become is the person you decide to be.", author: "Ralph Waldo Emerson", rating: 4.6, tags: ["destiny", "decision", "identity"] },
+                { text: "Your limitation—it's only your imagination.", author: "Anonymous", rating: 4.4, tags: ["limitation", "imagination", "potential"] },
+                { text: "What lies behind us and what lies before us are tiny matters compared to what lies within us.", author: "Ralph Waldo Emerson", rating: 4.8, tags: ["inner strength", "potential", "self"] }
+            ]
+        };
+
+        // AI Generation Templates
+        const AI_TEMPLATES = {
+            professional: [
+                "In the {industry} sector, {concept} is revolutionizing how we approach {problem}, enabling {benefit}.",
+                "True leadership isn't about {common_misconception}, but rather about {true_quality} that empowers teams to {positive_outcome}.",
+                "The future of {technology} lies in its ability to {core_function}, transforming {industry} through {innovation}."
+            ],
+            inspirational: [
+                "Even when facing {challenge}, remember that {positive_quality} can help you overcome any obstacle and achieve {goal}.",
+                "Your journey may be filled with {difficulty}, but each step brings you closer to {aspiration} if you maintain {virtue}.",
+                "The path to {achievement} begins with a single {action}, fueled by {emotion} and guided by {principle}."
+            ],
+            wisdom: [
+                "Like {natural_element} that {natural_action}, we must learn to {human_action} in order to find {positive_state}.",
+                "True wisdom comes not from {common_source}, but from understanding that {profound_insight}.",
+                "In a world of {modern_problem}, the ancient principle of {timeless_value} remains our most powerful tool for {positive_outcome}."
+            ],
+            success: [
+                "Success in {field} requires more than {common_approach}; it demands {critical_quality} and the courage to {necessary_action}.",
+                "The difference between those who achieve {goal} and those who don't is not {common_differentiator}, but rather {true_differentiator}.",
+                "Lasting success is built on {foundation}, nurtured by {quality}, and achieved through {action}."
+            ],
+            life: [
+                "Life's most valuable lessons often come from {difficult_experience}, teaching us that {important_lesson}.",
+                "To live fully is to embrace {challenge} with {quality}, finding joy in {simple_pleasure} and meaning in {profound_experience}.",
+                "The art of living well involves balancing {competing_value} with {complementary_value}, creating harmony through {balancing_act}."
+            ],
+            mindset: [
+                "A {adjective} mindset transforms {obstacle} into {opportunity}, allowing us to see beyond {limitation} to {possibility}.",
+                "The power of {positive_attitude} lies in its ability to reshape our perception of {challenge}, turning {negative} into {positive}.",
+                "Cultivating {mental_quality} requires us to {practice} consistently, strengthening our capacity for {positive_outcome}."
+            ]
+        };
+
+        const AI_WORDS = {
+            industry: ["technology", "healthcare", "finance", "education", "manufacturing"],
+            concept: ["AI", "blockchain", "machine learning", "quantum computing", "neural networks"],
+            problem: ["data analysis", "customer engagement", "supply chain", "security", "decision making"],
+            benefit: ["unprecedented efficiency", "deeper insights", "competitive advantage", "innovative solutions"],
+            common_misconception: ["command and control", "having all the answers", "never showing weakness"],
+            true_quality: ["empathy", "vision", "authenticity", "resilience", "integrity"],
+            positive_outcome: ["excel", "innovate", "thrive", "achieve greatness", "surpass expectations"],
+            technology: ["artificial intelligence", "cloud computing", "edge computing", "IoT", "5G networks"],
+            core_function: ["enhance human capability", "solve complex problems", "create new possibilities"],
+            innovation: ["disruptive thinking", "creative solutions", "paradigm shifts"],
+            challenge: ["adversity", "uncertainty", "setbacks", "challenging circumstances"],
+            positive_quality: ["resilience", "determination", "patience", "courage", "perseverance"],
+            goal: ["your dreams", "true potential", "extraordinary results", "lasting fulfillment"],
+            difficulty: ["obstacles", "setbacks", "uncertainties", "challenges"],
+            aspiration: ["greatness", "fulfillment", "your true purpose", "extraordinary achievements"],
+            virtue: ["perseverance", "faith", "courage", "patience"],
+            achievement: ["excellence", "mastery", "greatness", "fulfillment"],
+            action: ["decision", "step", "act of courage", "leap of faith"],
+            emotion: ["passion", "determination", "courage", "conviction"],
+            principle: ["integrity", "wisdom", "compassion", "clarity"],
+            natural_element: ["the river", "the oak tree", "the mountain", "the seasons"],
+            natural_action: ["flows around obstacles", "grows toward the light", "stands firm through storms", "transform steadily"],
+            human_action: ["adapt gracefully", "seek growth persistently", "remain steadfast", "embrace change"],
+            positive_state: ["inner peace", "true contentment", "lasting happiness", "profound fulfillment"],
+            common_source: ["knowledge alone", "experience alone", "intelligence alone"],
+            profound_insight: ["true understanding comes from within", "the journey is the destination", "simplicity holds the deepest truths"],
+            modern_problem: ["constant distraction", "information overload", "superficial connections"],
+            timeless_value: ["mindfulness", "presence", "authenticity", "compassion"],
+            field: ["business", "technology", "art", "science", "leadership"],
+            common_approach: ["talent alone", "hard work alone", "intelligence alone"],
+            critical_quality: ["resilience", "adaptability", "emotional intelligence", "vision"],
+            necessary_action: ["embrace failure", "challenge assumptions", "think differently", "persist against all odds"],
+            common_differentiator: ["talent", "luck", "opportunity"],
+            true_differentiator: ["persistence", "resilience", "grit", "consistency"],
+            foundation: ["integrity", "purpose", "strong values", "authentic relationships"],
+            quality: ["discipline", "patience", "curiosity", "resilience"],
+            action: ["consistent effort", "focused action", "intentional practice", "purposeful work"],
+            difficult_experience: ["failure", "loss", "disappointment", "setbacks"],
+            important_lesson: ["growth comes through challenge", "strength is forged in adversity", "what matters most cannot be taken from us"],
+            challenge: ["uncertainty", "change", "imperfection", "vulnerability"],
+            quality: ["courage", "grace", "resilience", "humor"],
+            simple_pleasure: ["moments of connection", "small victories", "daily gratitude", "present awareness"],
+            profound_experience: ["deep connection", "meaningful contribution", "personal growth"],
+            competing_value: ["ambition", "achievement", "progress"],
+            complementary_value: ["contentment", "presence", "gratitude"],
+            balancing_act: ["mindful action", "purposeful presence", "ambitious contentment"],
+            adjective: ["growth", "abundance", "possibility", "resilient"],
+            obstacle: ["failure", "limitations", "criticism", "setbacks"],
+            opportunity: ["growth", "learning", "innovation", "reinvention"],
+            limitation: ["current circumstances", "past failures", "others' expectations"],
+            possibility: ["what could be", "untapped potential", "new horizons"],
+            positive_attitude: ["gratitude", "optimism", "resilience", "growth mindset"],
+            challenge: ["failure", "rejection", "uncertainty", "change"],
+            negative: ["setbacks", "obstacles", "failures"],
+            positive: ["stepping stones", "opportunities", "lessons"],
+            mental_quality: ["resilience", "focus", "emotional intelligence", "mindfulness"],
+            practice: ["mindful awareness", "intentional reflection", "daily gratitude", "positive self-talk"]
+        };
+
+        // Application State
+        class QuoteApp {
+            constructor() {
+                this.currentCategory = 'professional';
+                this.currentQuote = null;
+                this.quotesRead = 0;
+                this.favorites = [];
+                this.streak = 0;
+                this.settings = {
+                    autoRead: false,
+                    soundEffects: true,
+                    notifications: true,
+                    darkMode: false,
+                    aiSuggestions: true,
+                    voiceEnabled: true
+                };
+                this.ratings = {};
+                this.searchResults = [];
+                this.isAnimationPaused = false;
+                this.autoReadInterval = null;
+                this.challengeProgress = 0;
+                this.challengeGoal = 5;
+                this.achievements = {
+                    firstQuote: false,
+                    fiveQuotes: false,
+                    tenQuotes: false,
+                    masterReader: false
+                };
+                this.speechSynthesis = window.speechSynthesis;
+                this.speechUtterance = null;
+                this.currentProfile = 'default';
+                this.aiGenerated = false;
+                this.insightsVisible = false;
+                
+                this.initializeApp();
+            }
+
+            initializeApp() {
+                this.loadUserData();
+                this.setupEventListeners();
+                this.displayQuote(this.getRandomQuote(this.currentCategory));
+                this.updateStats();
+                this.initThreeJS();
+                this.startAutoRead();
+            }
+
+            loadUserData() {
+                // Load from localStorage
+                const savedData = localStorage.getItem('quoteVerseData');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    this.quotesRead = data.quotesRead || 0;
+                    this.favorites = data.favorites || [];
+                    this.streak = data.streak || 0;
+                    this.settings = data.settings || this.settings;
+                    this.ratings = data.ratings || {};
+                    this.challengeProgress = data.challengeProgress || 0;
+                    this.achievements = data.achievements || this.achievements;
+                    this.currentProfile = data.currentProfile || 'default';
+                }
+                
+                // Apply settings
+                if (this.settings.darkMode) {
+                    document.body.classList.add('dark-mode');
+                    document.querySelector('#theme-btn i').className = 'fas fa-sun';
+                }
+                
+                if (this.settings.autoRead) {
+                    document.getElementById('auto-read-toggle').classList.add('active');
+                }
+                
+                if (this.settings.soundEffects) {
+                    document.getElementById('sound-toggle').classList.add('active');
+                }
+                
+                if (this.settings.notifications) {
+                    document.getElementById('notifications-toggle').classList.add('active');
+                }
+                
+                if (this.settings.aiSuggestions) {
+                    document.getElementById('ai-toggle').classList.add('active');
+                }
+                
+                // Update UI
+                this.updateFavoritesList();
+                this.updateChallengeProgress();
+                this.updateProfileSelection();
+            }
+
+            saveUserData() {
+                const data = {
+                    quotesRead: this.quotesRead,
+                    favorites: this.favorites,
+                    streak: this.streak,
+                    settings: this.settings,
+                    ratings: this.ratings,
+                    challengeProgress: this.challengeProgress,
+                    achievements: this.achievements,
+                    currentProfile: this.currentProfile
+                };
+                localStorage.setItem('quoteVerseData', JSON.stringify(data));
+            }
+
+            setupEventListeners() {
+                // Category buttons
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.setCategory(btn.dataset.category);
+                    });
+                });
+                
+                // Action buttons
+                document.getElementById('new-quote-btn').addEventListener('click', () => {
+                    this.getNewQuote();
+                });
+                
+                document.getElementById('favorite-btn').addEventListener('click', () => {
+                    this.toggleFavorite();
+                });
+                
+                document.getElementById('share-btn').addEventListener('click', () => {
+                    this.shareQuote();
+                });
+                
+                document.getElementById('ai-generate-btn').addEventListener('click', () => {
+                    this.generateAIQuote();
+                });
+                
+                // Rating stars
+                document.querySelectorAll('.star').forEach(star => {
+                    star.addEventListener('click', () => {
+                        this.rateQuote(parseInt(star.dataset.rating));
+                    });
+                });
+                
+                // Search input
+                document.getElementById('search-input').addEventListener('input', (e) => {
+                    this.searchQuotes(e.target.value);
+                });
+                
+                // Settings toggles
+                document.getElementById('auto-read-toggle').addEventListener('click', () => {
+                    this.toggleSetting('autoRead');
+                });
+                
+                document.getElementById('sound-toggle').addEventListener('click', () => {
+                    this.toggleSetting('soundEffects');
+                });
+                
+                document.getElementById('notifications-toggle').addEventListener('click', () => {
+                    this.toggleSetting('notifications');
+                });
+                
+                document.getElementById('ai-toggle').addEventListener('click', () => {
+                    this.toggleSetting('aiSuggestions');
+                });
+                
+                // Animation controls
+                document.getElementById('pause-btn').addEventListener('click', () => {
+                    this.toggleAnimation();
+                });
+                
+                document.getElementById('fullscreen-btn').addEventListener('click', () => {
+                    this.toggleFullscreen();
+                });
+                
+                document.getElementById('theme-btn').addEventListener('click', () => {
+                    this.toggleDarkMode();
+                });
+                
+                document.getElementById('insight-btn').addEventListener('click', () => {
+                    this.toggleInsights();
+                });
+                
+                // Voice controls
+                document.getElementById('play-btn').addEventListener('click', () => {
+                    this.playQuoteAudio();
+                });
+                
+                document.getElementById('pause-btn-voice').addEventListener('click', () => {
+                    this.pauseQuoteAudio();
+                });
+                
+                document.getElementById('stop-btn').addEventListener('click', () => {
+                    this.stopQuoteAudio();
+                });
+                
+                // Profile controls
+                document.getElementById('profile-btn').addEventListener('click', () => {
+                    this.toggleProfileDropdown();
+                });
+                
+                document.querySelectorAll('.profile-item').forEach(item => {
+                    if (item.id !== 'new-profile-btn') {
+                        item.addEventListener('click', () => {
+                            this.setProfile(item.dataset.profile);
+                        });
+                    }
+                });
+                
+                document.getElementById('new-profile-btn').addEventListener('click', () => {
+                    this.createNewProfile();
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.onWindowResize();
+                });
+                
+                // Speech synthesis events
+                this.speechSynthesis.addEventListener('voiceschanged', () => {
+                    this.voices = this.speechSynthesis.getVoices();
+                });
+            }
+
+            setCategory(category) {
+                this.currentCategory = category;
+                
+                // Update active button
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.category === category);
+                });
+                
+                // Get new quote
+                this.getNewQuote();
+            }
+
+            getRandomQuote(category = this.currentCategory) {
+                const quotes = QUOTES[category];
+                return quotes[Math.floor(Math.random() * quotes.length)];
+            }
+
+            getNewQuote() {
+                this.showLoading(true);
+                this.aiGenerated = false;
+                
+                // Simulate API call delay
+                setTimeout(() => {
+                    this.currentQuote = this.getRandomQuote();
+                    this.displayQuote(this.currentQuote);
+                    this.incrementQuotesRead();
+                    this.updateChallengeProgress();
+                    this.checkAchievements();
+                    this.showLoading(false);
+                    
+                    // Play sound
+                    if (this.settings.soundEffects) {
+                        this.playSound('newQuote');
+                    }
+                }, 800);
+            }
+
+            generateAIQuote() {
+                this.showLoading(true);
+                this.aiGenerated = true;
+                
+                // Simulate AI processing time
+                setTimeout(() => {
+                    const templates = AI_TEMPLATES[this.currentCategory];
+                    const template = templates[Math.floor(Math.random() * templates.length)];
+                    
+                    // Generate AI quote by replacing placeholders
+                    let quoteText = template;
+                    for (const [key, values] of Object.entries(AI_WORDS)) {
+                        const regex = new RegExp(`{${key}}`, 'g');
+                        const randomValue = values[Math.floor(Math.random() * values.length)];
+                        quoteText = quoteText.replace(regex, randomValue);
+                    }
+                    
+                    // Capitalize first letter
+                    quoteText = quoteText.charAt(0).toUpperCase() + quoteText.slice(1);
+                    
+                    // Create quote object
+                    this.currentQuote = {
+                        text: quoteText,
+                        author: "AI Wisdom",
+                        rating: 4.5,
+                        tags: ["AI", "generated", this.currentCategory]
+                    };
+                    
+                    this.displayQuote(this.currentQuote);
+                    this.incrementQuotesRead();
+                    this.updateChallengeProgress();
+                    this.checkAchievements();
+                    this.showLoading(false);
+                    
+                    // Show AI tag
+                    document.getElementById('ai-tag').style.display = 'block';
+                    
+                    // Play sound
+                    if (this.settings.soundEffects) {
+                        this.playSound('aiGenerated');
+                    }
+                    
+                    // Show notification
+                    if (this.settings.notifications) {
+                        this.showNotification('AI-generated quote created!', 'info');
+                    }
+                }, 1500);
+            }
+
+            displayQuote(quote) {
+                document.getElementById('quote-text').textContent = `"${quote.text}"`;
+                document.getElementById('quote-author').textContent = quote.author;
+                document.getElementById('quote-category').textContent = this.currentCategory.charAt(0).toUpperCase() + this.currentCategory.slice(1);
+                
+                // Calculate word count and read time
+                const wordCount = quote.text.split(' ').length;
+                const readTime = Math.ceil(wordCount / 3); // 3 words per second
+                document.getElementById('quote-length').textContent = `Words: ${wordCount}`;
+                document.getElementById('read-time').textContent = `~${readTime}s read`;
+                document.getElementById('word-count').textContent = `${wordCount} words`;
+                
+                // Update rating display
+                this.updateRatingDisplay();
+                
+                // Start progress bar
+                this.startProgressBar(readTime);
+                
+                // Apply animation
+                document.querySelector('.quote-text').style.animation = 'fadeIn 0.8s ease-out';
+                
+                // Show/hide AI tag
+                document.getElementById('ai-tag').style.display = this.aiGenerated ? 'block' : 'none';
+                
+                // Update insights
+                this.updateInsights();
+            }
+
+            updateInsights() {
+                if (!this.currentQuote) return;
+                
+                // Simulate sentiment analysis (0-100)
+                const sentimentScore = Math.floor(Math.random() * 40) + 60; // 60-100
+                document.getElementById('sentiment-score').textContent = `${sentimentScore}%`;
+                document.getElementById('sentiment-fill').style.width = `${sentimentScore}%`;
+                
+                // Simulate complexity (1-5)
+                const complexity = Math.floor(Math.random() * 3) + 2; // 2-4
+                const complexityText = ['Very Low', 'Low', 'Medium', 'High', 'Very High'][complexity];
+                document.getElementById('complexity').textContent = complexityText;
+                
+                // Update complexity dots
+                const dots = document.querySelectorAll('.complexity-dot');
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index < complexity);
+                });
+                
+                // Extract keywords (first 4 words)
+                const words = this.currentQuote.text.replace(/[^\w\s]/g, '').split(' ');
+                const keywords = [...new Set(words)].slice(0, 4).join(', ');
+                document.getElementById('keywords').textContent = keywords;
+            }
+
+            startProgressBar(duration) {
+                const progressBar = document.getElementById('progress-bar');
+                progressBar.style.width = '0%';
+                
+                // Reset and restart animation
+                void progressBar.offsetWidth; // Trigger reflow
+                
+                if (this.settings.autoRead) {
+                    progressBar.style.transition = `width ${duration}s linear`;
+                    progressBar.style.width = '100%';
+                }
+            }
+
+            toggleFavorite() {
+                if (!this.currentQuote) return;
+                
+                const quoteId = `${this.currentQuote.text.substring(0, 20)}...`;
+                const index = this.favorites.findIndex(fav => fav.text === this.currentQuote.text);
+                
+                if (index === -1) {
+                    // Add to favorites
+                    this.favorites.push({
+                        text: this.currentQuote.text,
+                        author: this.currentQuote.author,
+                        category: this.currentCategory,
+                        aiGenerated: this.aiGenerated
+                    });
+                    
+                    if (this.settings.soundEffects) {
+                        this.playSound('favorite');
+                    }
+                    
+                    if (this.settings.notifications) {
+                        this.showNotification('Quote added to favorites!', 'success');
+                    }
+                } else {
+                    // Remove from favorites
+                    this.favorites.splice(index, 1);
+                    
+                    if (this.settings.soundEffects) {
+                        this.playSound('remove');
+                    }
+                    
+                    if (this.settings.notifications) {
+                        this.showNotification('Quote removed from favorites', 'warning');
+                    }
+                }
+                
+                this.updateFavoritesList();
+                this.saveUserData();
+            }
+
+            updateFavoritesList() {
+                const favoritesList = document.getElementById('favorites-list');
+                favoritesList.innerHTML = '';
+                
+                if (this.favorites.length === 0) {
+                    favoritesList.innerHTML = '<div class="favorite-item">No favorites yet. Start adding some!</div>';
+                    return;
+                }
+                
+                this.favorites.forEach((fav, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'favorite-item';
+                    
+                    const favText = fav.text.length > 40 ? fav.text.substring(0, 40) + '...' : fav.text;
+                    
+                    item.innerHTML = `
+                        <div class="fav-text">${favText}</div>
+                        ${fav.aiGenerated ? '<span class="ai-tag-mini"><i class="fas fa-robot"></i></span>' : ''}
+                        <div class="remove-btn" data-index="${index}">
+                            <i class="fas fa-times"></i>
+                        </div>
+                    `;
+                    
+                    // Click to show quote
+                    item.addEventListener('click', () => {
+                        this.currentQuote = fav;
+                        this.displayQuote(fav);
+                        this.currentCategory = fav.category;
+                        this.aiGenerated = fav.aiGenerated || false;
+                        
+                        // Update category button
+                        this.setCategory(fav.category);
+                        
+                        if (this.settings.soundEffects) {
+                            this.playSound('select');
+                        }
+                    });
+                    
+                    // Remove button
+                    const removeBtn = item.querySelector('.remove-btn');
+                    removeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.favorites.splice(index, 1);
+                        this.updateFavoritesList();
+                        this.saveUserData();
+                        
+                        if (this.settings.notifications) {
+                            this.showNotification('Favorite removed', 'warning');
+                        }
+                    });
+                    
+                    favoritesList.appendChild(item);
+                });
+            }
+
+            rateQuote(rating) {
+                if (!this.currentQuote) return;
+                
+                const quoteKey = `${this.currentQuote.text.substring(0, 20)}...`;
+                this.ratings[quoteKey] = rating;
+                this.updateRatingDisplay();
+                this.saveUserData();
+                
+                if (this.settings.soundEffects) {
+                    this.playSound('rating');
+                }
+                
+                if (this.settings.notifications) {
+                    this.showNotification(`Rated ${rating} stars!`, 'info');
+                }
+            }
+
+            updateRatingDisplay() {
+                const stars = document.querySelectorAll('.star');
+                const quoteKey = this.currentQuote ? `${this.currentQuote.text.substring(0, 20)}...` : '';
+                const currentRating = this.ratings[quoteKey] || 0;
+                
+                stars.forEach((star, index) => {
+                    if (index < currentRating) {
+                        star.classList.add('active');
+                    } else {
+                        star.classList.remove('active');
+                    }
+                });
+            }
+
+            shareQuote() {
+                if (!this.currentQuote) return;
+                
+                const quoteText = `"${this.currentQuote.text}" - ${this.currentQuote.author}`;
+                
+                // Simulate sharing
+                navigator.clipboard.writeText(quoteText).then(() => {
+                    if (this.settings.notifications) {
+                        this.showNotification('Quote copied to clipboard!', 'success');
+                    }
+                    
+                    if (this.settings.soundEffects) {
+                        this.playSound('share');
+                    }
+                });
+            }
+
+            playQuoteAudio() {
+                if (!this.currentQuote || !this.settings.voiceEnabled) return;
+                
+                // Stop any ongoing speech
+                this.stopQuoteAudio();
+                
+                // Create new utterance
+                const text = `${this.currentQuote.text} by ${this.currentQuote.author}`;
+                this.speechUtterance = new SpeechSynthesisUtterance(text);
+                
+                // Set voice properties
+                this.speechUtterance.rate = 1.0;
+                this.speechUtterance.pitch = 1.0;
+                this.speechUtterance.volume = 1.0;
+                
+                // Find a suitable voice
+                const voices = this.speechSynthesis.getVoices();
+                const preferredVoice = voices.find(v => v.name.includes('Google') && v.lang.includes('en')) ||
+                                     voices.find(v => v.lang.includes('en'));
+                
+                if (preferredVoice) {
+                    this.speechUtterance.voice = preferredVoice;
+                }
+                
+                // Play the speech
+                this.speechSynthesis.speak(this.speechUtterance);
+                
+                // Update button states
+                document.getElementById('play-btn').disabled = true;
+                document.getElementById('pause-btn-voice').disabled = false;
+                document.getElementById('stop-btn').disabled = false;
+                
+                // Handle events
+                this.speechUtterance.onend = () => {
+                    document.getElementById('play-btn').disabled = false;
+                    document.getElementById('pause-btn-voice').disabled = true;
+                };
+                
+                this.speechUtterance.onerror = () => {
+                    document.getElementById('play-btn').disabled = false;
+                    document.getElementById('pause-btn-voice').disabled = true;
+                };
+            }
+
+            pauseQuoteAudio() {
+                if (this.speechSynthesis.speaking) {
+                    this.speechSynthesis.pause();
+                    document.getElementById('pause-btn-voice').disabled = true;
+                    document.getElementById('play-btn').disabled = false;
+                }
+            }
+
+            stopQuoteAudio() {
+                if (this.speechSynthesis.speaking) {
+                    this.speechSynthesis.cancel();
+                    document.getElementById('play-btn').disabled = false;
+                    document.getElementById('pause-btn-voice').disabled = true;
+                }
+            }
+
+            searchQuotes(query) {
+                if (!query.trim()) {
+                    this.updateFavoritesList();
+                    return;
+                }
+                
+                const lowerQuery = query.toLowerCase();
+                const results = [];
+                
+                // Search all categories
+                for (const category in QUOTES) {
+                    QUOTES[category].forEach(quote => {
+                        if (quote.text.toLowerCase().includes(lowerQuery)) {
+                            results.push({...quote, category});
+                        } else if (quote.author.toLowerCase().includes(lowerQuery)) {
+                            results.push({...quote, category});
+                        }
+                    });
+                }
+                
+                // Update UI with results
+                const favoritesList = document.getElementById('favorites-list');
+                favoritesList.innerHTML = '';
+                
+                if (results.length === 0) {
+                    favoritesList.innerHTML = '<div class="favorite-item">No matching quotes found</div>';
+                    return;
+                }
+                
+                results.slice(0, 5).forEach(quote => {
+                    const item = document.createElement('div');
+                    item.className = 'favorite-item';
+                    item.innerHTML = `
+                        <div class="fav-text">${quote.text.substring(0, 60)}...</div>
+                        <div class="fav-author">${quote.author}</div>
+                    `;
+                    
+                    item.addEventListener('click', () => {
+                        this.currentQuote = quote;
+                        this.displayQuote(quote);
+                        this.currentCategory = quote.category;
+                        this.setCategory(quote.category);
+                        this.aiGenerated = false;
+                        
+                        if (this.settings.soundEffects) {
+                            this.playSound('select');
+                        }
+                    });
+                    
+                    favoritesList.appendChild(item);
+                });
+            }
+
+            toggleSetting(setting) {
+                this.settings[setting] = !this.settings[setting];
+                document.getElementById(`${setting}-toggle`).classList.toggle('active', this.settings[setting]);
+                
+                if (setting === 'autoRead') {
+                    this.startAutoRead();
+                }
+                
+                this.saveUserData();
+            }
+
+            toggleInsights() {
+                this.insightsVisible = !this.insightsVisible;
+                document.getElementById('quote-analysis').classList.toggle('show', this.insightsVisible);
+                document.getElementById('insight-btn').classList.toggle('active', this.insightsVisible);
+                
+                if (this.insightsVisible) {
+                    this.updateInsights();
+                }
+            }
+
+            startAutoRead() {
+                if (this.autoReadInterval) {
+                    clearInterval(this.autoReadInterval);
+                }
+                
+                if (this.settings.autoRead) {
+                    this.autoReadInterval = setInterval(() => {
+                        this.getNewQuote();
+                    }, 10000); // 10 seconds
+                }
+            }
+
+            toggleAnimation() {
+                this.isAnimationPaused = !this.isAnimationPaused;
+                const pauseBtn = document.getElementById('pause-btn');
+                
+                if (this.isAnimationPaused) {
+                    if (this.scene) {
+                        this.animate = false;
+                    }
+                    pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    pauseBtn.title = 'Resume animations';
+                } else {
+                    if (this.scene) {
+                        this.animate = true;
+                        this.animateParticles();
+                    }
+                    pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                    pauseBtn.title = 'Pause animations';
+                }
+            }
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+
+            toggleDarkMode() {
+                this.settings.darkMode = !this.settings.darkMode;
+                document.body.classList.toggle('dark-mode', this.settings.darkMode);
+                
+                const themeBtn = document.getElementById('theme-btn');
+                if (this.settings.darkMode) {
+                    themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+                } else {
+                    themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+                }
+                
+                this.saveUserData();
+            }
+
+            toggleProfileDropdown() {
+                document.getElementById('profile-dropdown').classList.toggle('show');
+            }
+
+            setProfile(profile) {
+                this.currentProfile = profile;
+                document.getElementById('profile-dropdown').classList.remove('show');
+                this.updateProfileSelection();
+                this.saveUserData();
+                
+                if (this.settings.notifications) {
+                    this.showNotification(`Profile set to: ${profile}`, 'info');
+                }
+            }
+
+            updateProfileSelection() {
+                document.querySelectorAll('.profile-item').forEach(item => {
+                    if (item.dataset.profile) {
+                        item.classList.toggle('active', item.dataset.profile === this.currentProfile);
+                    }
+                });
+            }
+
+            createNewProfile() {
+                const profileName = prompt('Enter new profile name:');
+                if (profileName) {
+                    // Create new profile item
+                    const newProfile = document.createElement('div');
+                    newProfile.className = 'profile-item';
+                    newProfile.dataset.profile = profileName.toLowerCase();
+                    newProfile.textContent = profileName;
+                    
+                    // Add event listener
+                    newProfile.addEventListener('click', () => {
+                        this.setProfile(profileName.toLowerCase());
+                    });
+                    
+                    // Insert before the "New Profile" button
+                    const dropdown = document.getElementById('profile-dropdown');
+                    dropdown.insertBefore(newProfile, document.getElementById('new-profile-btn'));
+                    
+                    // Set as active
+                    this.setProfile(profileName.toLowerCase());
+                }
+            }
+
+            incrementQuotesRead() {
+                this.quotesRead++;
+                this.updateStats();
+                
+                // Update streak if it's the first quote of the day
+                const today = new Date().toDateString();
+                const lastVisit = localStorage.getItem('lastVisit');
+                
+                if (lastVisit !== today) {
+                    this.streak++;
+                    localStorage.setItem('lastVisit', today);
+                }
+                
+                this.saveUserData();
+            }
+
+            updateStats() {
+                document.getElementById('quotes-read').textContent = this.quotesRead;
+                document.getElementById('favorites-count').textContent = this.favorites.length;
+                document.getElementById('streak-count').textContent = this.streak;
+                
+                // Calculate average rating
+                const ratings = Object.values(this.ratings);
+                const avgRating = ratings.length ? 
+                    (ratings.reduce((sum, val) => sum + val, 0) / ratings.length).toFixed(1) : 
+                    '0.0';
+                document.getElementById('rating-avg').textContent = avgRating;
+            }
+
+            updateChallengeProgress() {
+                this.challengeProgress = Math.min(this.quotesRead, this.challengeGoal);
+                const progressPercent = (this.challengeProgress / this.challengeGoal) * 100;
+                document.getElementById('challenge-progress-bar').style.width = `${progressPercent}%`;
+                
+                // Update challenge text
+                const challengeText = document.querySelector('.challenge-text');
+                challengeText.textContent = `Read ${this.challengeProgress}/${this.challengeGoal} quotes about success`;
+            }
+
+            checkAchievements() {
+                if (!this.achievements.firstQuote && this.quotesRead >= 1) {
+                    this.achievements.firstQuote = true;
+                    this.showAchievement('First Quote Unlocked!');
+                }
+                
+                if (!this.achievements.fiveQuotes && this.quotesRead >= 5) {
+                    this.achievements.fiveQuotes = true;
+                    this.showAchievement('5 Quotes Master!');
+                }
+                
+                if (!this.achievements.tenQuotes && this.quotesRead >= 10) {
+                    this.achievements.tenQuotes = true;
+                    this.showAchievement('10 Quotes Expert!');
+                }
+                
+                if (!this.achievements.masterReader && this.quotesRead >= 25) {
+                    this.achievements.masterReader = true;
+                    this.showAchievement('Master Reader!');
+                }
+                
+                // Update achievements display
+                const achievementItems = document.querySelectorAll('.achievement-item');
+                achievementItems[0].classList.toggle('unlocked', this.achievements.firstQuote);
+                achievementItems[1].classList.toggle('unlocked', this.achievements.fiveQuotes);
+                achievementItems[2].classList.toggle('unlocked', this.achievements.tenQuotes);
+                achievementItems[3].classList.toggle('unlocked', this.achievements.masterReader);
+                
+                this.saveUserData();
+            }
+
+            showAchievement(text) {
+                const badge = document.createElement('div');
+                badge.className = 'achievement-badge';
+                badge.innerHTML = `
+                    <i class="fas fa-trophy"></i> ${text}
+                `;
+                document.body.appendChild(badge);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    badge.remove();
+                }, 3000);
+                
+                if (this.settings.soundEffects) {
+                    this.playSound('achievement');
+                }
+            }
+
+            showNotification(text, type) {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i> ${text}
+                `;
+                document.body.appendChild(notification);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+
+            playSound(type) {
+                // In a real app, we would play actual sounds
+                console.log(`Playing sound: ${type}`);
+            }
+
+            showLoading(show) {
+                const overlay = document.getElementById('loading-overlay');
+                overlay.classList.toggle('active', show);
+            }
+
+            initThreeJS() {
+                // Set up Three.js scene for particle background
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.z = 5;
+
+                this.renderer = new THREE.WebGLRenderer({ alpha: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                document.getElementById('three-container').appendChild(this.renderer.domElement);
+
+                // Create particles
+                this.particles = [];
+                this.particleCount = 200;
+                this.particleGeometry = new THREE.BufferGeometry();
+                
+                // Particle material with color based on category
+                this.particleMaterial = new THREE.PointsMaterial({
+                    color: this.getCategoryColor(),
+                    size: 0.03,
+                    transparent: true,
+                    opacity: 0.8,
+                    sizeAttenuation: true
+                });
+
+                // Initialize particle positions
+                const positions = new Float32Array(this.particleCount * 3);
+                const colors = new Float32Array(this.particleCount * 3);
+                
+                const color = new THREE.Color(this.getCategoryColor());
+                
+                for (let i = 0; i < this.particleCount * 3; i += 3) {
+                    positions[i] = (Math.random() - 0.5) * 10;
+                    positions[i + 1] = (Math.random() - 0.5) * 10;
+                    positions[i + 2] = (Math.random() - 0.5) * 10;
+                    
+                    colors[i] = color.r;
+                    colors[i + 1] = color.g;
+                    colors[i + 2] = color.b;
+                    
+                    // Store velocity for each particle
+                    this.particles.push({
+                        velocity: new THREE.Vector3(
+                            (Math.random() - 0.5) * 0.02,
+                            (Math.random() - 0.5) * 0.02,
+                            (Math.random() - 0.5) * 0.02
+                        )
+                    });
+                }
+
+                this.particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                this.particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                this.particleSystem = new THREE.Points(this.particleGeometry, this.particleMaterial);
+                this.scene.add(this.particleSystem);
+
+                // Mouse interaction
+                this.mouseX = 0;
+                this.mouseY = 0;
+                document.addEventListener('mousemove', (e) => {
+                    this.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+                    this.mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+                });
+
+                // Start animation
+                this.animate = true;
+                this.animateParticles();
+            }
+            
+            getCategoryColor() {
+                const colors = {
+                    professional: 0x667eea,
+                    inspirational: 0xf093fb,
+                    wisdom: 0x00c9ff,
+                    success: 0xffd700,
+                    life: 0x92fe9d,
+                    mindset: 0xff9a3d
+                };
+                
+                return colors[this.currentCategory] || 0xffffff;
+            }
+
+            animateParticles() {
+                if (!this.animate) return;
+                
+                requestAnimationFrame(() => this.animateParticles());
+                
+                // Update particle positions
+                const positions = this.particleGeometry.attributes.position.array;
+                
+                // Gradually change color to match current category
+                const targetColor = new THREE.Color(this.getCategoryColor());
+                const currentColor = this.particleMaterial.color.clone();
+                currentColor.lerp(targetColor, 0.01);
+                this.particleMaterial.color.copy(currentColor);
+                
+                for (let i = 0; i < positions.length; i += 3) {
+                    const particleIndex = i / 3;
+                    const particle = this.particles[particleIndex];
+                    
+                    // Add mouse influence
+                    const dx = this.mouseX * 0.1 - positions[i];
+                    const dy = this.mouseY * 0.1 - positions[i + 1];
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 2) {
+                        const force = (2 - distance) * 0.01;
+                        particle.velocity.x += dx * force;
+                        particle.velocity.y += dy * force;
+                    }
+                    
+                    // Update position with velocity
+                    positions[i] += particle.velocity.x;
+                    positions[i + 1] += particle.velocity.y;
+                    positions[i + 2] += particle.velocity.z;
+                    
+                    // Boundary check
+                    if (Math.abs(positions[i]) > 5) particle.velocity.x *= -1;
+                    if (Math.abs(positions[i + 1]) > 5) particle.velocity.y *= -1;
+                    if (Math.abs(positions[i + 2]) > 5) particle.velocity.z *= -1;
+                    
+                    // Apply damping
+                    particle.velocity.multiplyScalar(0.98);
+                }
+                
+                this.particleGeometry.attributes.position.needsUpdate = true;
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new QuoteApp();
+        });
+    </script>
+</body>
+</html>
