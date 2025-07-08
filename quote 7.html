@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuoteVerse Pro - Professional Quote Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-blue: #0078d4;
+            --secondary-blue: #106ebe;
+            --accent-purple: #8661c5;
+            --success-green: #107c10;
+            --warning-orange: #ff8c00;
+            --error-red: #d13438;
+            --text-primary: #323130;
+            --text-secondary: #605e5c;
+            --background-primary: #ffffff;
+            --background-secondary: #f3f2f1;
+            --border-color: #edebe9;
+            --shadow-light: rgba(0, 0, 0, 0.1);
+            --shadow-medium: rgba(0, 0, 0, 0.2);
+            --shadow-heavy: rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-logo {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: #ffffff;
+        }
+
+        .loading-progress {
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .loading-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #0078d4);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .loading-text {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Main Application */
+        #three-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            z-index: 100;
+        }
+
+        .app-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-right: 2rem;
+        }
+
+        .app-nav {
+            display: flex;
+            gap: 2rem;
+            margin-left: auto;
+        }
+
+        .nav-item {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-item:hover {
+            color: #ffffff;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: 2rem;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00d4ff, #0078d4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .main-content {
+            position: absolute;
+            top: 70px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            z-index: 10;
+        }
+
+        .quote-workspace {
+            display: flex;
+            gap: 2rem;
+            width: 100%;
+            max-width: 1400px;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .sidebar-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+        }
+
+        .sidebar-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .category-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 0.75rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            text-align: center;
+        }
+
+        .category-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .category-btn.active {
+            background: linear-gradient(45deg, #0078d4, #00d4ff);
+            box-shadow: 0 5px 15px rgba(0, 120, 212, 0.3);
+        }
+
+        .category-icon {
+            font-size: 1.2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .filters {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .filter-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .filter-select option {
+            background: #667eea;
+            color: #ffffff;
+        }
+
+        .quote-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quote-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.02), transparent);
+            animation: shimmer 8s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .quote-metadata {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .quote-id {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .quote-rating {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .star {
+            color: #ffd700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .star:hover {
+            transform: scale(1.2);
+        }
+
+        .quote-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            line-height: 1.4;
+            margin: 2rem 0;
+            color: #ffffff;
+            position: relative;
+            z-index: 2;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        .quote-author {
+            font-size: 1.3rem;
+            color: #00d4ff;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        .quote-author::before {
+            content: '— ';
+        }
+
+        .quote-tags {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .quote-tag {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .quote-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(45deg, #0078d4, #00d4ff);
+            border: none;
+            color: #ffffff;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 120, 212, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 120, 212, 0.4);
+        }
+
+        .control-btn.secondary {
+            background: linear-gradient(45deg, #8661c5, #667eea);
+            box-shadow: 0 5px 15px rgba(134, 97, 197, 0.3);
+        }
+
+        .control-btn.secondary:hover {
+            box-shadow: 0 8px 25px rgba(134, 97, 197, 0.4);
+        }
+
+        .control-btn.danger {
+            background: linear-gradient(45deg, #d13438, #ff6b6b);
+            box-shadow: 0 5px 15px rgba(209, 52, 56, 0.3);
+        }
+
+        .control-btn.danger:hover {
+            box-shadow: 0 8px 25px rgba(209, 52, 56, 0.4);
+        }
+
+        .control-btn.success {
+            background: linear-gradient(45deg, #107c10, #16c60c);
+            box-shadow: 0 5px 15px rgba(16, 124, 16, 0.3);
+        }
+
+        .control-btn.success:hover {
+            box-shadow: 0 8px 25px rgba(16, 124, 16, 0.4);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .floating-panels {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .floating-panel {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .floating-panel.visible {
+            transform: translateY(0);
+        }
+
+        .history-panel {
+            right: 2rem;
+            bottom: 2rem;
+            width: 350px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .settings-panel {
+            left: 2rem;
+            bottom: 2rem;
+            width: 300px;
+        }
+
+        .favorites-panel {
+            right: 2rem;
+            top: 2rem;
+            width: 350px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .panel-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .panel-close:hover {
+            color: #ffffff;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .history-text {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .history-author {
+            font-size: 0.8rem;
+            color: #00d4ff;
+            font-weight: 500;
+        }
+
+        .settings-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 0.5rem;
+        }
+
+        .settings-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 0.75rem;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        .settings-range {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 2rem;
+            background: linear-gradient(45deg, #107c10, #16c60c);
+            color: #ffffff;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(16, 124, 16, 0.3);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification.visible {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: linear-gradient(45deg, #d13438, #ff6b6b);
+            box-shadow: 0 5px 15px rgba(209, 52, 56, 0.3);
+        }
+
+        .notification.warning {
+            background: linear-gradient(45deg, #ff8c00, #ffa500);
+            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, #00d4ff, transparent);
+            border-radius: 50%;
+            animation: float 8s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+        }
+        
+        /* New Elements */
+        .quote-animation {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        
+        .quote-animation .shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            animation: floatShape 15s infinite linear;
+        }
+        
+        @keyframes floatShape {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(50px, 30px) rotate(90deg); }
+            50% { transform: translate(0, 60px) rotate(180deg); }
+            75% { transform: translate(-50px, 30px) rotate(270deg); }
+            100% { transform: translate(0, 0) rotate(360deg); }
+        }
+        
+        .ai-suggestion {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .ai-suggestion-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+        
+        .ai-suggestion-text {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .ai-suggestion-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #ffffff;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .ai-suggestion-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .quote-actions {
+            display: flex;
+            gap: 0.5rem;
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+        }
+        
+        .action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #ffffff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .quote-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .quote-workspace {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .sidebar {
+                width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            
+            .sidebar-section {
+                min-width: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-header {
+                padding: 0 1rem;
+            }
+            
+            .app-nav {
+                display: none;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .quote-container {
+                padding: 2rem;
+            }
+            
+            .quote-text {
+                font-size: 1.8rem;
+            }
+            
+            .quote-controls {
+                flex-direction: column;
+            }
+            
+            .control-btn {
+                width: 100%;
+            }
+            
+            .floating-panel {
+                left: 1rem;
+                right: 1rem;
+                width: auto;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* High contrast mode */
+        @media (prefers-contrast: high) {
+            .quote-container {
+                border: 2px solid #ffffff;
+            }
+            
+            .control-btn {
+                border: 2px solid #ffffff;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loading-screen">
+        <div class="loading-logo">QuoteVerse Pro</div>
+        <div class="loading-progress">
+            <div class="loading-bar" id="loading-bar"></div>
+        </div>
+        <div class="loading-text" id="loading-text">Initializing application...</div>
+    </div>
+
+    <!-- Three.js Background -->
+    <div id="three-container"></div>
+
+    <!-- Particles -->
+    <div class="particles" id="particles"></div>
+    
+    <!-- Quote Animation -->
+    <div class="quote-animation" id="quote-animation"></div>
+
+    <!-- App Header -->
+    <header class="app-header">
+        <div class="app-logo">QuoteVerse Pro</div>
+        <nav class="app-nav">
+            <a href="#" class="nav-item">Dashboard</a>
+            <a href="#" class="nav-item">Collections</a>
+            <a href="#" class="nav-item">Analytics</a>
+            <a href="#" class="nav-item">Settings</a>
+        </nav>
+        <div class="user-profile">
+            <div class="user-avatar">U</div>
+            <span>Meta Recruiter</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="quote-workspace">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Categories</h3>
+                    <div class="category-grid">
+                        <button class="category-btn active" data-category="inspirational">
+                            <span class="category-icon">💡</span>
+                            <span>Inspirational</span>
+                        </button>
+                        <button class="category-btn" data-category="wisdom">
+                            <span class="category-icon">🧠</span>
+                            <span>Wisdom</span>
+                        </button>
+                        <button class="category-btn" data-category="success">
+                            <span class="category-icon">🚀</span>
+                            <span>Success</span>
+                        </button>
+                        <button class="category-btn" data-category="leadership">
+                            <span class="category-icon">👑</span>
+                            <span>Leadership</span>
+                        </button>
+                        <button class="category-btn" data-category="technology">
+                            <span class="category-icon">⚡</span>
+                            <span>Technology</span>
+                        </button>
+                        <button class="category-btn" data-category="innovation">
+                            <span class="category-icon">🔬</span>
+                            <span>Innovation</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="quotes-viewed">0</div>
+                            <div class="stat-label">Quotes Viewed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="favorites-count">0</div>
+                            <div class="stat-label">Favorites</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="categories-explored">1</div>
+                            <div class="stat-label">Categories</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="session-time">0:00</div>
+                            <div class="stat-label">Session Time</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Filters</h3>
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label class="filter-label">Author</label>
+                            <select class="filter-select" id="author-filter">
+                                <option value="">All Authors</option>
+                                <option value="eleanor_roosevelt">Eleanor Roosevelt</option>
+                                <option value="steve_jobs">Steve Jobs</option>
+                                <option value="albert_einstein">Albert Einstein</option>
+                                <option value="maya_angelou">Maya Angelou</option>
+                                <option value="nelson_mandela">Nelson Mandela</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Length</label>
+                            <select class="filter-select" id="length-filter">
+                                <option value="">Any Length</option>
+                                <option value="short">Short (< 50 words)</option>
+                                <option value="medium">Medium (50-100 words)</option>
+                                <option value="long">Long (> 100 words)</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Era</label>
+                            <select class="filter-select" id="era-filter">
+                                <option value="">Any Era</option>
+                                <option value="ancient">Ancient (< 500 AD)</option>
+                                <option value="classical">Classical (500-1500)</option>
+                                <option value="modern">Modern (1500-1900)</option>
+                                <option value="contemporary">Contemporary (1900+)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-suggestion">
+                        <div class="ai-suggestion-title">AI Suggestion</div>
+                        <div class="ai-suggestion-text" id="ai-suggestion-text">"Great things in business are never done by one person. They're done by a team of people." - Steve Jobs</div>
+                        <button class="ai-suggestion-btn" id="use-suggestion-btn">Use this quote</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Quote Container -->
+            <div class="quote-container">
+                <div class="quote-image" id="quote-image"></div>
+                
+                <div class="quote-actions">
+                    <button class="action-btn" id="copy-btn" title="Copy to clipboard">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="action-btn" id="speak-btn" title="Read aloud">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                    <button class="action-btn" id="save-image-btn" title="Save as image">
+                        <i class="fas fa-image"></i>
+                    </button>
+                </div>
+                
+                <div class="quote-metadata">
+                    <div class="quote-id" id="quote-id">QV-001</div>
+                    <div class="quote-rating" id="quote-rating">
+                        <span class="star" data-rating="1">★</span>
+                        <span class="star" data-rating="2">★</span>
+                        <span class="star" data-rating="3">★</span>
+                        <span class="star" data-rating="4">★</span>
+                        <span class="star" data-rating="5">★</span>
+                    </div>
+                </div>
+
+                <div class="quote-text" id="quote-text">
+                    "The future belongs to those who believe in the beauty of their dreams."
+                </div>
+
+                <div class="quote-author" id="quote-author">Eleanor Roosevelt</div>
+
+                <div class="quote-tags" id="quote-tags">
+                    <span class="quote-tag">Inspirational</span>
+                    <span class="quote-tag">Dreams</span>
+                    <span class="quote-tag">Future</span>
+                </div>
+
+                <div class="quote-controls">
+                    <button class="control-btn" id="new-quote-btn">
+                        <span>🎲</span>
+                        <span>New Quote</span>
+                    </button>
+                    <button class="control-btn secondary" id="favorite-btn">
+                        <span>💖</span>
+                        <span>Favorite</span>
+                    </button>
+                    <button class="control-btn success" id="share-btn">
+                        <span>📤</span>
+                        <span>Share</span>
+                    </button>
+                    <button class="control-btn" id="history-btn">
+                        <span>📚</span>
+                        <span>History</span>
+                    </button>
+                    <button class="control-btn secondary" id="export-btn">
+                        <span>💾</span>
+                        <span>Export</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Panels -->
+    <div class="floating-panels">
+        <div class="floating-panel history-panel" id="history-panel">
+            <div class="panel-header">
+                <h3 class="panel-title">Quote History</h3>
+                <button class="panel-close">&times;</button>
+            </div>
+            <div id="history-content">
+                <!-- History items will be added here -->
+            </div>
+        </div>
+
+        <div class="floating-panel favorites-panel" id="favorites-panel">
+            <div class="panel-header">
+                <h3 class="panel-title">Favorites</h3>
+                <button class="panel-close">&times;</button>
+            </div>
+            <div id="favorites-content">
+                <!-- Favorites will be added here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notification-text">Quote added to favorites!</span>
+    </div>
+    
+    <!-- Export Modal -->
+    <div class="floating-panel" id="export-modal">
+        <div class="panel-header">
+            <h3 class="panel-title">Export Options</h3>
+            <button class="panel-close">&times;</button>
+        </div>
+        <div class="settings-group">
+            <label class="settings-label">Export Format</label>
+            <select class="settings-input" id="export-format">
+                <option value="text">Text File</option>
+                <option value="image">Image</option>
+                <option value="pdf">PDF Document</option>
+            </select>
+        </div>
+        <div class="settings-group">
+            <label class="settings-label">Include Metadata</label>
+            <div style="display: flex; gap: 10px;">
+                <label><input type="checkbox" id="include-author" checked> Author</label>
+                <label><input type="checkbox" id="include-tags" checked> Tags</label>
+                <label><input type="checkbox" id="include-rating"> Rating</label>
+            </div>
+        </div>
+        <button class="control-btn success" style="width: 100%; margin-top: 1rem;" id="export-confirm-btn">
+            Export Now
+        </button>
+    </div>
+
+    <script>
+        // Quote database
+        const quotes = [
+            {
+                id: "QV-001",
+                text: "The future belongs to those who believe in the beauty of their dreams.",
+                author: "Eleanor Roosevelt",
+                tags: ["Inspirational", "Dreams", "Future"],
+                category: "inspirational",
+                rating: 4,
+                era: "contemporary",
+                wordCount: 12
+            },
+            {
+                id: "QV-002",
+                text: "Innovation distinguishes between a leader and a follower.",
+                author: "Steve Jobs",
+                tags: ["Leadership", "Innovation", "Technology"],
+                category: "leadership",
+                rating: 5,
+                era: "contemporary",
+                wordCount: 7
+            },
+            {
+                id: "QV-003",
+                text: "The only way to do great work is to love what you do.",
+                author: "Steve Jobs",
+                tags: ["Success", "Passion", "Work"],
+                category: "success",
+                rating: 5,
+                era: "contemporary",
+                wordCount: 12
+            },
+            {
+                id: "QV-004",
+                text: "Imagination is more important than knowledge.",
+                author: "Albert Einstein",
+                tags: ["Wisdom", "Imagination", "Knowledge"],
+                category: "wisdom",
+                rating: 4,
+                era: "modern",
+                wordCount: 7
+            },
+            {
+                id: "QV-005",
+                text: "Success is not final, failure is not fatal: It is the courage to continue that counts.",
+                author: "Winston Churchill",
+                tags: ["Success", "Perseverance", "Leadership"],
+                category: "leadership",
+                rating: 5,
+                era: "modern",
+                wordCount: 15
+            },
+            {
+                id: "QV-006",
+                text: "The greatest glory in living lies not in never falling, but in rising every time we fall.",
+                author: "Nelson Mandela",
+                tags: ["Inspirational", "Resilience", "Success"],
+                category: "inspirational",
+                rating: 5,
+                era: "contemporary",
+                wordCount: 17
+            },
+            {
+                id: "QV-007",
+                text: "Technology is nothing. What's important is that you have a faith in people, that they're basically good and smart, and if you give them tools, they'll do wonderful things with them.",
+                author: "Steve Jobs",
+                tags: ["Technology", "Innovation", "People"],
+                category: "technology",
+                rating: 4,
+                era: "contemporary",
+                wordCount: 35
+            },
+            {
+                id: "QV-008",
+                text: "The only true wisdom is in knowing you know nothing.",
+                author: "Socrates",
+                tags: ["Wisdom", "Philosophy", "Knowledge"],
+                category: "wisdom",
+                rating: 5,
+                era: "ancient",
+                wordCount: 9
+            },
+            {
+                id: "QV-009",
+                text: "Innovation is seeing what everybody has seen and thinking what nobody has thought.",
+                author: "Albert Einstein",
+                tags: ["Innovation", "Creativity", "Thinking"],
+                category: "innovation",
+                rating: 5,
+                era: "modern",
+                wordCount: 14
+            },
+            {
+                id: "QV-010",
+                text: "The best way to predict the future is to invent it.",
+                author: "Alan Kay",
+                tags: ["Technology", "Innovation", "Future"],
+                category: "technology",
+                rating: 4,
+                era: "contemporary",
+                wordCount: 10
+            }
+        ];
+
+        // App state
+        let state = {
+            currentQuote: null,
+            favorites: [],
+            history: [],
+            categories: ["inspirational"],
+            quotesViewed: 0,
+            sessionStart: Date.now(),
+            currentRating: 0
+        };
+
+        // DOM Elements
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingBar = document.getElementById('loading-bar');
+        const loadingText = document.getElementById('loading-text');
+        const quoteText = document.getElementById('quote-text');
+        const quoteAuthor = document.getElementById('quote-author');
+        const quoteTags = document.getElementById('quote-tags');
+        const quoteId = document.getElementById('quote-id');
+        const quoteRating = document.getElementById('quote-rating');
+        const newQuoteBtn = document.getElementById('new-quote-btn');
+        const favoriteBtn = document.getElementById('favorite-btn');
+        const shareBtn = document.getElementById('share-btn');
+        const historyBtn = document.getElementById('history-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const historyPanel = document.getElementById('history-panel');
+        const favoritesPanel = document.getElementById('favorites-panel');
+        const historyContent = document.getElementById('history-content');
+        const favoritesContent = document.getElementById('favorites-content');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notification-text');
+        const quotesViewed = document.getElementById('quotes-viewed');
+        const favoritesCount = document.getElementById('favorites-count');
+        const categoriesExplored = document.getElementById('categories-explored');
+        const sessionTime = document.getElementById('session-time');
+        const categoryBtns = document.querySelectorAll('.category-btn');
+        const authorFilter = document.getElementById('author-filter');
+        const lengthFilter = document.getElementById('length-filter');
+        const eraFilter = document.getElementById('era-filter');
+        const copyBtn = document.getElementById('copy-btn');
+        const speakBtn = document.getElementById('speak-btn');
+        const saveImageBtn = document.getElementById('save-image-btn');
+        const useSuggestionBtn = document.getElementById('use-suggestion-btn');
+        const aiSuggestionText = document.getElementById('ai-suggestion-text');
+        const quoteImage = document.getElementById('quote-image');
+        const exportModal = document.getElementById('export-modal');
+        const exportConfirmBtn = document.getElementById('export-confirm-btn');
+        
+        // Initialize app
+        function initApp() {
+            // Simulate loading
+            let progress = 0;
+            const loadingInterval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(loadingInterval);
+                    setTimeout(() => {
+                        loadingScreen.classList.add('hidden');
+                        initThreeJS();
+                        createParticles();
+                        createQuoteAnimation();
+                        updateQuoteImage();
+                    }, 500);
+                }
+                loadingBar.style.transform = `translateX(${progress - 100}%)`;
+                loadingText.textContent = progress < 30 ? "Initializing application..." : 
+                                         progress < 60 ? "Loading quote database..." : 
+                                         progress < 90 ? "Setting up interface..." : 
+                                         "Ready!";
+            }, 200);
+            
+            // Load state from localStorage
+            const savedState = localStorage.getItem('quoteVerseState');
+            if (savedState) {
+                state = JSON.parse(savedState);
+            }
+            
+            // Set initial quote
+            setQuote(getRandomQuote());
+            updateStatistics();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Start session timer
+            startSessionTimer();
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            newQuoteBtn.addEventListener('click', () => {
+                setQuote(getRandomQuote());
+                animateQuoteChange();
+            });
+            
+            favoriteBtn.addEventListener('click', toggleFavorite);
+            
+            shareBtn.addEventListener('click', shareQuote);
+            
+            historyBtn.addEventListener('click', () => togglePanel('history-panel'));
+            
+            exportBtn.addEventListener('click', () => togglePanel('export-modal'));
+            
+            document.querySelectorAll('.panel-close').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const panel = e.target.closest('.floating-panel');
+                    panel.classList.remove('visible');
+                });
+            });
+            
+            // Rating stars
+            document.querySelectorAll('.star').forEach(star => {
+                star.addEventListener('click', (e) => {
+                    const rating = parseInt(e.target.getAttribute('data-rating'));
+                    setRating(rating);
+                });
+            });
+            
+            // Category buttons
+            categoryBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const category = btn.getAttribute('data-category');
+                    selectCategory(category);
+                });
+            });
+            
+            // Filters
+            authorFilter.addEventListener('change', applyFilters);
+            lengthFilter.addEventListener('change', applyFilters);
+            eraFilter.addEventListener('change', applyFilters);
+            
+            // Copy button
+            copyBtn.addEventListener('click', copyToClipboard);
+            
+            // Speak button
+            speakBtn.addEventListener('click', speakQuote);
+            
+            // Save image button
+            saveImageBtn.addEventListener('click', saveAsImage);
+            
+            // Use AI suggestion button
+            useSuggestionBtn.addEventListener('click', useAISuggestion);
+            
+            // Export confirm button
+            exportConfirmBtn.addEventListener('click', exportQuote);
+        }
+        
+        // Get a random quote based on current filters
+        function getRandomQuote() {
+            let filteredQuotes = [...quotes];
+            
+            // Filter by selected categories
+            if (state.categories.length > 0) {
+                filteredQuotes = filteredQuotes.filter(quote => 
+                    state.categories.includes(quote.category)
+                );
+            }
+            
+            // Filter by author
+            const authorValue = authorFilter.value;
+            if (authorValue) {
+                filteredQuotes = filteredQuotes.filter(quote => 
+                    quote.author.toLowerCase().includes(authorValue.replace('_', ' ').toLowerCase())
+                );
+            }
+            
+            // Filter by length
+            const lengthValue = lengthFilter.value;
+            if (lengthValue === 'short') {
+                filteredQuotes = filteredQuotes.filter(quote => quote.wordCount < 50);
+            } else if (lengthValue === 'medium') {
+                filteredQuotes = filteredQuotes.filter(quote => quote.wordCount >= 50 && quote.wordCount <= 100);
+            } else if (lengthValue === 'long') {
+                filteredQuotes = filteredQuotes.filter(quote => quote.wordCount > 100);
+            }
+            
+            // Filter by era
+            const eraValue = eraFilter.value;
+            if (eraValue) {
+                filteredQuotes = filteredQuotes.filter(quote => quote.era === eraValue);
+            }
+            
+            // If no quotes match filters, return a random one
+            if (filteredQuotes.length === 0) {
+                return quotes[Math.floor(Math.random() * quotes.length)];
+            }
+            
+            // Return a random quote from filtered list
+            return filteredQuotes[Math.floor(Math.random() * filteredQuotes.length)];
+        }
+        
+        // Set current quote
+        function setQuote(quote) {
+            state.currentQuote = quote;
+            quoteText.textContent = `"${quote.text}"`;
+            quoteAuthor.textContent = quote.author;
+            quoteId.textContent = quote.id;
+            
+            // Update tags
+            quoteTags.innerHTML = '';
+            quote.tags.forEach(tag => {
+                const tagEl = document.createElement('span');
+                tagEl.className = 'quote-tag';
+                tagEl.textContent = tag;
+                quoteTags.appendChild(tagEl);
+            });
+            
+            // Update rating display
+            setRating(quote.rating);
+            
+            // Add to history
+            if (!state.history.some(q => q.id === quote.id)) {
+                state.history.unshift(quote);
+                if (state.history.length > 20) state.history.pop();
+                
+                // Update history panel
+                updateHistoryPanel();
+            }
+            
+            // Update viewed count
+            state.quotesViewed++;
+            
+            // Update statistics
+            updateStatistics();
+            
+            // Save state
+            saveState();
+            
+            // Update quote image
+            updateQuoteImage();
+            
+            // Generate AI suggestion
+            generateAISuggestion();
+        }
+        
+        // Set rating for current quote
+        function setRating(rating) {
+            state.currentRating = rating;
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.textContent = '★';
+                    star.style.color = '#ffd700';
+                } else {
+                    star.textContent = '☆';
+                    star.style.color = 'rgba(255, 255, 255, 0.3)';
+                }
+            });
+        }
+        
+        // Toggle favorite status
+        function toggleFavorite() {
+            if (!state.currentQuote) return;
+            
+            const index = state.favorites.findIndex(q => q.id === state.currentQuote.id);
+            
+            if (index === -1) {
+                // Add to favorites
+                state.favorites.push(state.currentQuote);
+                favoriteBtn.innerHTML = '<span>💖</span><span>Unfavorite</span>';
+                showNotification('Quote added to favorites!', 'success');
+            } else {
+                // Remove from favorites
+                state.favorites.splice(index, 1);
+                favoriteBtn.innerHTML = '<span>💖</span><span>Favorite</span>';
+                showNotification('Quote removed from favorites!', 'warning');
+            }
+            
+            // Update favorites panel
+            updateFavoritesPanel();
+            
+            // Update statistics
+            updateStatistics();
+            
+            // Save state
+            saveState();
+        }
+        
+        // Share quote
+        function shareQuote() {
+            if (!state.currentQuote) return;
+            
+            const text = `"${state.currentQuote.text}" - ${state.currentQuote.author}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'QuoteVerse Pro Quote',
+                    text: text,
+                    url: window.location.href
+                })
+                .then(() => showNotification('Quote shared successfully!', 'success'))
+                .catch(() => showNotification('Sharing failed', 'error'));
+            } else {
+                // Fallback for browsers without Share API
+                navigator.clipboard.writeText(text)
+                    .then(() => showNotification('Quote copied to clipboard!', 'success'))
+                    .catch(() => showNotification('Failed to copy', 'error'));
+            }
+        }
+        
+        // Toggle panel visibility
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            panel.classList.toggle('visible');
+            
+            // Update panel content if needed
+            if (panelId === 'history-panel') {
+                updateHistoryPanel();
+            } else if (panelId === 'favorites-panel') {
+                updateFavoritesPanel();
+            }
+        }
+        
+        // Update history panel
+        function updateHistoryPanel() {
+            historyContent.innerHTML = '';
+            
+            state.history.forEach(quote => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-text">"${quote.text}"</div>
+                    <div class="history-author">${quote.author}</div>
+                `;
+                item.addEventListener('click', () => {
+                    setQuote(quote);
+                    historyPanel.classList.remove('visible');
+                });
+                historyContent.appendChild(item);
+            });
+            
+            if (state.history.length === 0) {
+                historyContent.innerHTML = '<div class="history-text">No history yet</div>';
+            }
+        }
+        
+        // Update favorites panel
+        function updateFavoritesPanel() {
+            favoritesContent.innerHTML = '';
+            
+            state.favorites.forEach(quote => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-text">"${quote.text}"</div>
+                    <div class="history-author">${quote.author}</div>
+                `;
+                item.addEventListener('click', () => {
+                    setQuote(quote);
+                    favoritesPanel.classList.remove('visible');
+                });
+                favoritesContent.appendChild(item);
+            });
+            
+            if (state.favorites.length === 0) {
+                favoritesContent.innerHTML = '<div class="history-text">No favorites yet</div>';
+            }
+            
+            // Update favorite button text
+            if (state.currentQuote) {
+                const isFavorite = state.favorites.some(q => q.id === state.currentQuote.id);
+                favoriteBtn.innerHTML = isFavorite ? 
+                    '<span>💖</span><span>Unfavorite</span>' : 
+                    '<span>💖</span><span>Favorite</span>';
+            }
+        }
+        
+        // Update statistics
+        function updateStatistics() {
+            quotesViewed.textContent = state.quotesViewed;
+            favoritesCount.textContent = state.favorites.length;
+            categoriesExplored.textContent = state.categories.length;
+        }
+        
+        // Start session timer
+        function startSessionTimer() {
+            setInterval(() => {
+                const elapsed = Math.floor((Date.now() - state.sessionStart) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                sessionTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        // Show notification
+        function showNotification(text, type = 'success') {
+            notificationText.textContent = text;
+            notification.className = 'notification';
+            
+            if (type === 'error') {
+                notification.classList.add('error');
+                notification.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${text}`;
+            } else if (type === 'warning') {
+                notification.classList.add('warning');
+                notification.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${text}`;
+            } else {
+                notification.innerHTML = `<i class="fas fa-check-circle"></i> ${text}`;
+            }
+            
+            notification.classList.add('visible');
+            
+            setTimeout(() => {
+                notification.classList.remove('visible');
+            }, 3000);
+        }
+        
+        // Save state to localStorage
+        function saveState() {
+            localStorage.setItem('quoteVerseState', JSON.stringify(state));
+        }
+        
+        // Select category
+        function selectCategory(category) {
+            const index = state.categories.indexOf(category);
+            
+            if (index === -1) {
+                // Add category
+                state.categories.push(category);
+            } else {
+                // Remove category if it's not the last one
+                if (state.categories.length > 1) {
+                    state.categories.splice(index, 1);
+                }
+            }
+            
+            // Update UI
+            categoryBtns.forEach(btn => {
+                if (btn.getAttribute('data-category') === category) {
+                    btn.classList.toggle('active');
+                }
+            });
+            
+            // Update statistics
+            categoriesExplored.textContent = state.categories.length;
+            
+            // Apply filters
+            applyFilters();
+        }
+        
+        // Apply filters
+        function applyFilters() {
+            setQuote(getRandomQuote());
+        }
+        
+        // Copy quote to clipboard
+        function copyToClipboard() {
+            if (!state.currentQuote) return;
+            
+            const text = `"${state.currentQuote.text}" - ${state.currentQuote.author}`;
+            
+            navigator.clipboard.writeText(text)
+                .then(() => showNotification('Quote copied to clipboard!', 'success'))
+                .catch(() => showNotification('Failed to copy', 'error'));
+        }
+        
+        // Speak quote
+        function speakQuote() {
+            if (!state.currentQuote) return;
+            
+            const text = `"${state.currentQuote.text}" by ${state.currentQuote.author}`;
+            
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.1;
+                speechSynthesis.speak(utterance);
+                showNotification('Reading quote aloud...', 'success');
+            } else {
+                showNotification('Text-to-speech not supported', 'error');
+            }
+        }
+        
+        // Save as image
+        function saveAsImage() {
+            showNotification('Image export feature would be implemented in production', 'warning');
+        }
+        
+        // Use AI suggestion
+        function useAISuggestion() {
+            // In a real app, this would fetch from an AI API
+            // For this demo, we'll use a hardcoded suggestion
+            const suggestionQuote = {
+                id: "QV-AI-001",
+                text: "Great things in business are never done by one person. They're done by a team of people.",
+                author: "Steve Jobs",
+                tags: ["Teamwork", "Business", "Success"],
+                category: "leadership",
+                rating: 4,
+                era: "contemporary",
+                wordCount: 14
+            };
+            
+            setQuote(suggestionQuote);
+        }
+        
+        // Generate AI suggestion
+        function generateAISuggestion() {
+            // In a real app, this would generate based on current quote
+            // For this demo, we'll rotate through suggestions
+            const suggestions = [
+                "The only way to do great work is to love what you do.",
+                "Innovation distinguishes between a leader and a follower.",
+                "Your time is limited, so don't waste it living someone else's life.",
+                "Stay hungry, stay foolish.",
+                "The people who are crazy enough to think they can change the world are the ones who do."
+            ];
+            
+            const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+            aiSuggestionText.textContent = `"${randomSuggestion}" - Steve Jobs`;
+        }
+        
+        // Export quote
+        function exportQuote() {
+            const format = document.getElementById('export-format').value;
+            showNotification(`Exporting quote as ${format.toUpperCase()}...`, 'success');
+            exportModal.classList.remove('visible');
+        }
+        
+        // Create Three.js background
+        function initThreeJS() {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+            document.getElementById('three-container').appendChild(renderer.domElement);
+            
+            // Create particles
+            const particles = [];
+            const particleCount = 100;
+            const particleGeometry = new THREE.BufferGeometry();
+            const particleMaterial = new THREE.PointsMaterial({
+                color: 0x00d4ff,
+                size: 0.1,
+                transparent: true,
+                opacity: 0.5
+            });
+            
+            const positions = new Float32Array(particleCount * 3);
+            
+            for (let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+                positions[i3] = (Math.random() - 0.5) * 10;
+                positions[i3 + 1] = (Math.random() - 0.5) * 10;
+                positions[i3 + 2] = (Math.random() - 0.5) * 10;
+            }
+            
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particleSystem);
+            
+            camera.position.z = 5;
+            
+            // Animation
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                // Rotate particles
+                particleSystem.rotation.x += 0.001;
+                particleSystem.rotation.y += 0.001;
+                
+                // Move particles in a wave pattern
+                const positions = particleGeometry.attributes.position.array;
+                const time = Date.now() * 0.001;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const i3 = i * 3;
+                    positions[i3 + 1] = Math.sin(time + i) * 0.5;
+                }
+                
+                particleGeometry.attributes.position.needsUpdate = true;
+                
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+        
+        // Create particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // Random position
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                
+                // Random size
+                const size = Math.random() * 4 + 2;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Random animation delay
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        // Create quote animation
+        function createQuoteAnimation() {
+            const animationContainer = document.getElementById('quote-animation');
+            const shapeCount = 5;
+            
+            for (let i = 0; i < shapeCount; i++) {
+                const shape = document.createElement('div');
+                shape.className = 'shape';
+                
+                // Random size
+                const size = Math.random() * 200 + 50;
+                shape.style.width = `${size}px`;
+                shape.style.height = `${size}px`;
+                
+                // Random position
+                shape.style.left = `${Math.random() * 100}%`;
+                shape.style.top = `${Math.random() * 100}%`;
+                
+                // Random color
+                const colors = ['#00d4ff', '#8661c5', '#ff6b6b', '#ffd700', '#16c60c'];
+                shape.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Random animation duration
+                shape.style.animationDuration = `${Math.random() * 20 + 10}s`;
+                
+                animationContainer.appendChild(shape);
+            }
+        }
+        
+        // Update quote image
+        function updateQuoteImage() {
+            if (!state.currentQuote) return;
+            
+            // In a real app, this would fetch an image based on quote content
+            // For this demo, we'll rotate through a set of backgrounds
+            const backgrounds = [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'linear-gradient(135deg, #43CBFF 0%, #9708CC 100%)',
+                'linear-gradient(135deg, #F97794 0%, #623AA2 100%)',
+                'linear-gradient(135deg, #81FFEF 0%, #F067B4 100%)',
+                'linear-gradient(135deg, #FFE29F 0%, #FFA99F 100%)'
+            ];
+            
+            const randomBg = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+            quoteImage.style.background = randomBg;
+        }
+        
+        // Animate quote change
+        function animateQuoteChange() {
+            quoteText.style.opacity = 0;
+            quoteAuthor.style.opacity = 0;
+            quoteTags.style.opacity = 0;
+            
+            setTimeout(() => {
+                quoteText.style.transition = 'opacity 0.5s ease';
+                quoteAuthor.style.transition = 'opacity 0.5s ease';
+                quoteTags.style.transition = 'opacity 0.5s ease';
+                
+                quoteText.style.opacity = 1;
+                quoteAuthor.style.opacity = 1;
+                quoteTags.style.opacity = 1;
+            }, 300);
+        }
+        
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
