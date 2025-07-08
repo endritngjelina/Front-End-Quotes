@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magical Library Quote Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #f4f4f4;
+            overflow: hidden;
+            height: 100vh;
+            transition: background 1.5s ease;
+        }
+        
+        #three-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(1px);
+        }
+        
+        .quote-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 25px;
+            padding: 50px;
+            max-width: 800px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform: scale(0.95);
+            animation: float 8s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow 0.7s ease;
+        }
+        
+        .quote-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            animation: shimmer 3s infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: scale(0.95) translateY(0px); }
+            50% { transform: scale(0.95) translateY(-15px); }
+        }
+        
+        .quote-text {
+            font-size: 1.8rem;
+            line-height: 1.6;
+            margin: 30px 0;
+            font-style: italic;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            position: relative;
+            z-index: 2;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            animation: fadeInText 1s ease-in-out forwards;
+        }
+        
+        @keyframes fadeInText {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .quote-author {
+            font-size: 1.2rem;
+            color: #ffd700;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 2;
+            opacity: 0;
+            animation: fadeInAuthor 1s ease-in-out 0.3s forwards;
+        }
+        
+        @keyframes fadeInAuthor {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .quote-author::before {
+            content: '— ';
+        }
+        
+        .controls {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 18px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.4s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .btn.secondary {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.3);
+        }
+        
+        .btn.secondary:hover {
+            box-shadow: 0 15px 40px rgba(245, 87, 108, 0.4);
+        }
+        
+        .category-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .category-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .category-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .category-btn.active {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a2e;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+        }
+        
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: radial-gradient(circle, #ffd700, transparent);
+            border-radius: 50%;
+            animation: sparkle 4s infinite ease-in-out;
+            transition: all 0.5s ease;
+        }
+        
+        .particle.heart {
+            width: 12px;
+            height: 12px;
+            background: none;
+            font-size: 12px;
+            line-height: 12px;
+            text-align: center;
+            color: #ff6b6b;
+            border-radius: 0;
+            animation: floatHeart 6s infinite ease-in-out;
+        }
+        
+        .particle.leaf {
+            width: 10px;
+            height: 10px;
+            background: none;
+            border-radius: 0;
+            animation: floatLeaf 8s infinite ease-in-out;
+        }
+        
+        .particle.leaf::before {
+            content: '🍃';
+            font-size: 10px;
+        }
+        
+        .particle.star {
+            width: 10px;
+            height: 10px;
+            background: none;
+            border-radius: 0;
+            animation: sparkle 3s infinite ease-in-out;
+        }
+        
+        .particle.star::before {
+            content: '✦';
+            font-size: 14px;
+            color: #ffd700;
+            display: block;
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+        }
+        
+        @keyframes floatHeart {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+            50% { transform: translateY(-15px) rotate(15deg); opacity: 1; }
+        }
+        
+        @keyframes floatLeaf {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+            50% { transform: translateY(-20px) rotate(-15deg); opacity: 1; }
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1) rotate(180deg); }
+        }
+        
+        .magic-burst {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.8), transparent);
+            animation: magicBurst 0.8s ease-out;
+            pointer-events: none;
+            z-index: 15;
+        }
+        
+        @keyframes magicBurst {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffd700;
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .quote-number {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .theme-indicator {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .theme-icon {
+            font-size: 1.2rem;
+            transition: transform 0.5s ease;
+        }
+        
+        .favorites-count {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .quote-container.inspirational {
+            box-shadow: 0 25px 50px rgba(102, 126, 234, 0.3);
+        }
+        
+        .quote-container.wisdom {
+            box-shadow: 0 25px 50px rgba(42, 157, 143, 0.3);
+        }
+        
+        .quote-container.success {
+            box-shadow: 0 25px 50px rgba(255, 183, 3, 0.3);
+        }
+        
+        .quote-container.life {
+            box-shadow: 0 25px 50px rgba(88, 129, 87, 0.3);
+        }
+        
+        .quote-container.love {
+            box-shadow: 0 25px 50px rgba(255, 10, 84, 0.3);
+        }
+        
+        .quote-container.motivational {
+            box-shadow: 0 25px 50px rgba(255, 107, 107, 0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .quote-container {
+                padding: 30px;
+                max-width: 90%;
+            }
+            
+            .quote-text {
+                font-size: 1.4rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="three-container"></div>
+    <div class="particles" id="particles"></div>
+    
+    <div class="ui-overlay">
+        <div class="quote-container inspirational" id="quote-container">
+            <div class="theme-indicator">
+                <span class="theme-icon">📚</span>
+                <span id="theme-label">Inspirational</span>
+            </div>
+            
+            <div class="quote-number" id="quote-number">Quote #1</div>
+            
+            <div class="category-selector">
+                <button class="category-btn active" data-category="inspirational">📚 Inspirational</button>
+                <button class="category-btn" data-category="wisdom">🧠 Wisdom</button>
+                <button class="category-btn" data-category="success">🏆 Success</button>
+                <button class="category-btn" data-category="life">🌿 Life</button>
+                <button class="category-btn" data-category="love">💖 Love</button>
+                <button class="category-btn" data-category="motivational">🔥 Motivational</button>
+            </div>
+            
+            <div class="quote-text" id="quote-text">
+                "The only way to do great work is to love what you do."
+            </div>
+            
+            <div class="quote-author" id="quote-author">Steve Jobs</div>
+            
+            <div class="controls">
+                <button class="btn" id="new-quote-btn">✨ New Quote</button>
+                <button class="btn secondary" id="share-btn">📤 Share</button>
+                <button class="btn" id="favorite-btn">💖 Favorite</button>
+            </div>
+            
+            <div class="favorites-count" id="favorites-count">
+                💖 0 Favorites
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Expanded Quote Database
+        const QUOTES = {
+            inspirational: [
+                { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+                { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
+                { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+                { text: "It is during our darkest moments that we must focus to see the light.", author: "Aristotle" },
+                { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+                { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
+                { text: "Don't be afraid to give up the good to go for the great.", author: "John D. Rockefeller" },
+                { text: "If you really look closely, most overnight successes took a long time.", author: "Steve Jobs" },
+                { text: "You are never too old to set another goal or to dream a new dream.", author: "C.S. Lewis" },
+                { text: "The only limit to our realization of tomorrow is our doubts of today.", author: "Franklin D. Roosevelt" },
+                { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+                { text: "The best way to predict the future is to create it.", author: "Peter Drucker" }
+            ],
+            wisdom: [
+                { text: "The only true wisdom is in knowing you know nothing.", author: "Socrates" },
+                { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
+                { text: "Yesterday is history, tomorrow is a mystery, today is a gift.", author: "Eleanor Roosevelt" },
+                { text: "The journey of a thousand miles begins with one step.", author: "Lao Tzu" },
+                { text: "He who knows that enough is enough will always have enough.", author: "Lao Tzu" },
+                { text: "The only impossible journey is the one you never begin.", author: "Tony Robbins" },
+                { text: "Wisdom is not a product of schooling but of the lifelong attempt to acquire it.", author: "Albert Einstein" },
+                { text: "Knowing others is intelligence; knowing yourself is true wisdom.", author: "Lao Tzu" },
+                { text: "The fool doth think he is wise, but the wise man knows himself to be a fool.", author: "William Shakespeare" },
+                { text: "Turn your wounds into wisdom.", author: "Oprah Winfrey" },
+                { text: "The wisest mind has something yet to learn.", author: "George Santayana" }
+            ],
+            success: [
+                { text: "Success is not the key to happiness. Happiness is the key to success.", author: "Albert Schweitzer" },
+                { text: "The road to success and the road to failure are almost exactly the same.", author: "Colin R. Davis" },
+                { text: "Success usually comes to those who are too busy to be looking for it.", author: "Henry David Thoreau" },
+                { text: "Don't be afraid to give up the good to go for the great.", author: "John D. Rockefeller" },
+                { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
+                { text: "If you are not willing to risk the usual, you will have to settle for the ordinary.", author: "Jim Rohn" },
+                { text: "Success is stumbling from failure to failure with no loss of enthusiasm.", author: "Winston Churchill" },
+                { text: "The secret of success is to do the common thing uncommonly well.", author: "John D. Rockefeller" },
+                { text: "I find that the harder I work, the more luck I seem to have.", author: "Thomas Jefferson" },
+                { text: "Success is not in what you have, but who you have become.", author: "Bo Bennett" }
+            ],
+            life: [
+                { text: "Life is what happens to you while you're busy making other plans.", author: "John Lennon" },
+                { text: "The purpose of our lives is to be happy.", author: "Dalai Lama" },
+                { text: "Life is 10% what happens to you and 90% how you react to it.", author: "Charles R. Swindoll" },
+                { text: "In the end, we will remember not the words of our enemies, but the silence of our friends.", author: "Martin Luther King Jr." },
+                { text: "Life is either a daring adventure or nothing at all.", author: "Helen Keller" },
+                { text: "The greatest glory in living lies not in never falling, but in rising every time we fall.", author: "Nelson Mandela" },
+                { text: "Life is really simple, but we insist on making it complicated.", author: "Confucius" },
+                { text: "The good life is one inspired by love and guided by knowledge.", author: "Bertrand Russell" },
+                { text: "Life isn't about finding yourself. Life is about creating yourself.", author: "George Bernard Shaw" },
+                { text: "To live is the rarest thing in the world. Most people exist, that is all.", author: "Oscar Wilde" }
+            ],
+            love: [
+                { text: "Being deeply loved by someone gives you strength, while loving someone deeply gives you courage.", author: "Lao Tzu" },
+                { text: "The best thing to hold onto in life is each other.", author: "Audrey Hepburn" },
+                { text: "Love is composed of a single soul inhabiting two bodies.", author: "Aristotle" },
+                { text: "Where there is love there is life.", author: "Mahatma Gandhi" },
+                { text: "The greatest happiness of life is the conviction that we are loved.", author: "Victor Hugo" },
+                { text: "Love is not about how many days, months, or years you have been together.", author: "Unknown" },
+                { text: "We are most alive when we're in love.", author: "John Updike" },
+                { text: "Love doesn't make the world go round. Love is what makes the ride worthwhile.", author: "Franklin P. Jones" },
+                { text: "The best and most beautiful things in this world cannot be seen or even heard, but must be felt with the heart.", author: "Helen Keller" },
+                { text: "Love is that condition in which the happiness of another person is essential to your own.", author: "Robert A. Heinlein" }
+            ],
+            motivational: [
+                { text: "The only person you are destined to become is the person you decide to be.", author: "Ralph Waldo Emerson" },
+                { text: "What you get by achieving your goals is not as important as what you become by achieving your goals.", author: "Zig Ziglar" },
+                { text: "Our greatest weakness lies in giving up. The most certain way to succeed is always to try just one more time.", author: "Thomas Edison" },
+                { text: "You miss 100% of the shots you don't take.", author: "Wayne Gretzky" },
+                { text: "The harder the conflict, the more glorious the triumph.", author: "Thomas Paine" },
+                { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+                { text: "The only thing standing between you and your goal is the story you keep telling yourself as to why you can't achieve it.", author: "Jordan Belfort" },
+                { text: "Strength does not come from winning. Your struggles develop your strengths.", author: "Arnold Schwarzenegger" },
+                { text: "The only place where success comes before work is in the dictionary.", author: "Vidal Sassoon" },
+                { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" }
+            ]
+        };
+
+        // Theme Settings
+        const THEMES = {
+            inspirational: {
+                background: ['#1a1a2e', '#16213e', '#0f3460'],
+                particleColor: '#ffd700',
+                icon: '📚',
+                label: 'Inspirational'
+            },
+            wisdom: {
+                background: ['#1d2b53', '#7e2553', '#008751'],
+                particleColor: '#2a9d8f',
+                icon: '🧠',
+                label: 'Wisdom'
+            },
+            success: {
+                background: ['#283149', '#404b69', '#00818a'],
+                particleColor: '#ffb703',
+                icon: '🏆',
+                label: 'Success'
+            },
+            life: {
+                background: ['#1d3c45', '#1e5f74', '#1d9d8f'],
+                particleColor: '#588157',
+                icon: '🌿',
+                label: 'Life'
+            },
+            love: {
+                background: ['#590d22', '#800f2f', '#c9184a'],
+                particleColor: '#ff6b6b',
+                icon: '💖',
+                label: 'Love'
+            },
+            motivational: {
+                background: ['#2d0c3f', '#5d0b47', '#9c0b3c'],
+                particleColor: '#ff6b6b',
+                icon: '🔥',
+                label: 'Motivational'
+            }
+        };
+
+        // App State
+        let currentCategory = 'inspirational';
+        let currentQuoteIndex = 0;
+        let quoteCount = 1;
+        let favorites = [];
+
+        // Three.js Scene Setup
+        let scene, camera, renderer, books = [], magicalParticles = [];
+        let animationId;
+
+        function initThreeJS() {
+            const container = document.getElementById('three-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x1a1a2e, 20, 100);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 25);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            scene.add(ambientLight);
+            
+            const pointLight = new THREE.PointLight(0xffd700, 1, 100);
+            pointLight.position.set(0, 10, 10);
+            scene.add(pointLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0x9370db, 0.6);
+            directionalLight.position.set(-10, 10, 5);
+            scene.add(directionalLight);
+            
+            // Create floating books
+            createFloatingBooks();
+            
+            // Create magical particles
+            createMagicalParticles();
+            
+            // Start animation
+            animate();
+        }
+
+        function createBook(x, y, z, color = 0x8B4513) {
+            const book = new THREE.Group();
+            
+            // Book cover
+            const coverGeometry = new THREE.BoxGeometry(1.5, 2, 0.3);
+            const coverMaterial = new THREE.MeshLambertMaterial({ color: color });
+            const cover = new THREE.Mesh(coverGeometry, coverMaterial);
+            book.add(cover);
+            
+            // Book pages
+            const pagesGeometry = new THREE.BoxGeometry(1.4, 1.9, 0.25);
+            const pagesMaterial = new THREE.MeshLambertMaterial({ color: 0xfffff0 });
+            const pages = new THREE.Mesh(pagesGeometry, pagesMaterial);
+            pages.position.z = 0.025;
+            book.add(pages);
+            
+            book.position.set(x, y, z);
+            book.userData = {
+                originalY: y,
+                rotationSpeed: (Math.random() - 0.5) * 0.01,
+                floatSpeed: 0.5 + Math.random() * 0.5,
+                floatOffset: Math.random() * Math.PI * 2
+            };
+            
+            return book;
+        }
+
+        function createFloatingBooks() {
+            const colors = [0x8B4513, 0x654321, 0x4A4A4A, 0x2F4F4F, 0x800080, 0x008080];
+            
+            for (let i = 0; i < 15; i++) {
+                const x = (Math.random() - 0.5) * 50;
+                const y = Math.random() * 15 + 5;
+                const z = (Math.random() - 0.5) * 40;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                const book = createBook(x, y, z, color);
+                books.push(book);
+                scene.add(book);
+            }
+        }
+
+        function createMagicalParticles() {
+            const particleGeometry = new THREE.SphereGeometry(0.1, 4, 4);
+            const particleMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffd700, 
+                transparent: true, 
+                opacity: 0.8 
+            });
+            
+            for (let i = 0; i < 100; i++) {
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                particle.position.set(
+                    (Math.random() - 0.5) * 60,
+                    Math.random() * 30,
+                    (Math.random() - 0.5) * 60
+                );
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02
+                    ),
+                    originalOpacity: 0.3 + Math.random() * 0.5,
+                    pulseSpeed: 0.5 + Math.random() * 1.5
+                };
+                magicalParticles.push(particle);
+                scene.add(particle);
+            }
+        }
+
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+            
+            // Animate floating books
+            books.forEach((book) => {
+                book.rotation.y += book.userData.rotationSpeed;
+                book.rotation.x = Math.sin(time * book.userData.floatSpeed + book.userData.floatOffset) * 0.1;
+                book.position.y = book.userData.originalY + Math.sin(time * book.userData.floatSpeed + book.userData.floatOffset) * 2;
+            });
+            
+            // Animate magical particles
+            magicalParticles.forEach(particle => {
+                particle.position.add(particle.userData.velocity);
+                particle.material.opacity = particle.userData.originalOpacity * 
+                    (0.5 + 0.5 * Math.sin(time * particle.userData.pulseSpeed));
+                
+                // Reset particle position if it goes too far
+                if (particle.position.length() > 40) {
+                    particle.position.set(
+                        (Math.random() - 0.5) * 60,
+                        Math.random() * 30,
+                        (Math.random() - 0.5) * 60
+                    );
+                }
+            });
+            
+            // Gentle camera movement
+            camera.position.x = Math.sin(time * 0.2) * 3;
+            camera.position.y = 8 + Math.sin(time * 0.3) * 2;
+            camera.lookAt(0, 0, 0);
+            
+            renderer.render(scene, camera);
+        }
+
+        // Quote Functions
+        function getRandomQuote(category) {
+            const categoryQuotes = QUOTES[category];
+            const randomIndex = Math.floor(Math.random() * categoryQuotes.length);
+            return categoryQuotes[randomIndex];
+        }
+
+        function displayQuote(quote) {
+            const quoteText = document.getElementById('quote-text');
+            const quoteAuthor = document.getElementById('quote-author');
+            const quoteNumber = document.getElementById('quote-number');
+            
+            // Add fade out effect
+            quoteText.style.opacity = '0';
+            quoteAuthor.style.opacity = '0';
+            
+            setTimeout(() => {
+                quoteText.textContent = `"${quote.text}"`;
+                quoteAuthor.textContent = quote.author;
+                quoteNumber.textContent = `Quote #${quoteCount}`;
+                
+                // Trigger fade in animation
+                quoteText.style.animation = 'none';
+                quoteAuthor.style.animation = 'none';
+                
+                setTimeout(() => {
+                    quoteText.style.animation = 'fadeInText 1s ease-in-out forwards';
+                    quoteAuthor.style.animation = 'fadeInAuthor 1s ease-in-out 0.3s forwards';
+                }, 10);
+            }, 300);
+        }
+
+        function createMagicBurst(event) {
+            const burst = document.createElement('div');
+            burst.className = 'magic-burst';
+            burst.style.left = event.clientX - 50 + 'px';
+            burst.style.top = event.clientY - 50 + 'px';
+            document.body.appendChild(burst);
+            
+            setTimeout(() => {
+                document.body.removeChild(burst);
+            }, 800);
+        }
+
+        function createUIParticles() {
+            const container = document.getElementById('particles');
+            container.innerHTML = '';
+            
+            let particleClass = 'particle';
+            let particleContent = '';
+            
+            // Set particle style based on category
+            switch(currentCategory) {
+                case 'love':
+                    particleClass = 'particle heart';
+                    particleContent = '♥';
+                    break;
+                case 'life':
+                    particleClass = 'particle leaf';
+                    break;
+                case 'success':
+                    particleClass = 'particle star';
+                    break;
+                default:
+                    particleClass = 'particle';
+            }
+            
+            for (let i = 0; i < 25; i++) {
+                const particle = document.createElement('div');
+                particle.className = particleClass;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 4 + 's';
+                particle.style.animationDuration = (2 + Math.random() * 2) + 's';
+                
+                // Set color based on theme
+                particle.style.color = THEMES[currentCategory].particleColor;
+                
+                if (particleContent) {
+                    particle.textContent = particleContent;
+                }
+                
+                container.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (container.contains(particle)) {
+                        container.removeChild(particle);
+                    }
+                }, 6000);
+            }
+        }
+
+        function newQuote() {
+            const quote = getRandomQuote(currentCategory);
+            displayQuote(quote);
+            quoteCount++;
+            createUIParticles();
+            updateFavoritesCount();
+        }
+
+        function shareQuote() {
+            const quoteText = document.getElementById('quote-text').textContent;
+            const quoteAuthor = document.getElementById('quote-author').textContent;
+            const shareText = `${quoteText} ${quoteAuthor}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Inspirational Quote',
+                    text: shareText
+                });
+            } else {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    showNotification('Quote copied to clipboard! ✨');
+                });
+            }
+        }
+
+        function toggleFavorite() {
+            const quoteText = document.getElementById('quote-text').textContent;
+            const quoteAuthor = document.getElementById('quote-author').textContent;
+            const quote = { text: quoteText, author: quoteAuthor };
+            
+            const index = favorites.findIndex(fav => fav.text === quote.text);
+            if (index > -1) {
+                favorites.splice(index, 1);
+                showNotification('Removed from favorites 💔');
+            } else {
+                favorites.push(quote);
+                showNotification('Added to favorites! 💖');
+            }
+            
+            updateFavoritesCount();
+        }
+        
+        function updateFavoritesCount() {
+            document.getElementById('favorites-count').textContent = `💖 ${favorites.length} Favorites`;
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(45deg, #667eea, #764ba2);
+                color: white;
+                padding: 15px 30px;
+                border-radius: 25px;
+                font-size: 1.1rem;
+                font-weight: 600;
+                z-index: 1000;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                animation: notification-pop 2s ease-in-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+
+        function switchCategory(category) {
+            currentCategory = category;
+            
+            // Update active button
+            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-category="${category}"]`).classList.add('active');
+            
+            // Update theme
+            const theme = THEMES[category];
+            document.body.style.background = `linear-gradient(135deg, ${theme.background[0]} 0%, ${theme.background[1]} 50%, ${theme.background[2]} 100%)`;
+            
+            // Update container class
+            const container = document.getElementById('quote-container');
+            container.className = 'quote-container ' + category;
+            
+            // Update theme indicator
+            document.getElementById('theme-label').textContent = theme.label;
+            document.querySelector('.theme-icon').textContent = theme.icon;
+            
+            // Create UI particles with new theme
+            createUIParticles();
+            
+            // Get new quote from selected category
+            newQuote();
+        }
+
+        // Event Listeners
+        document.getElementById('new-quote-btn').addEventListener('click', (e) => {
+            createMagicBurst(e);
+            newQuote();
+        });
+
+        document.getElementById('share-btn').addEventListener('click', shareQuote);
+        document.getElementById('favorite-btn').addEventListener('click', toggleFavorite);
+
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                createMagicBurst(e);
+                switchCategory(btn.dataset.category);
+            });
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Add CSS for notification animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes notification-pop {
+                0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+                20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+                80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize
+        initThreeJS();
+        displayQuote(getRandomQuote(currentCategory));
+        
+        // Create initial particles
+        setTimeout(createUIParticles, 1000);
+        setInterval(createUIParticles, 8000); // Continuous ambient particles
+    </script>
+</body>
+</html>
