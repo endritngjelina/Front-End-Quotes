@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuoteFlow - Professional Quote Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --accent-gold: #ffd700;
+            --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --shadow-strong: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        #three-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(2px);
+        }
+        
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            z-index: 20;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .settings-btn, .analytics-btn, .export-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .settings-btn:hover, .analytics-btn:hover, .export-btn:hover {
+            background: var(--glass-border);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .main-container {
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 80px;
+            padding: 40px;
+        }
+        
+        .quote-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border-radius: 30px;
+            padding: 60px;
+            text-align: center;
+            box-shadow: var(--shadow-strong);
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .quote-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+            animation: shimmer 8s linear infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .quote-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .quote-number {
+            background: var(--glass-bg);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+        }
+        
+        .quote-difficulty {
+            background: var(--warning-gradient);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(67, 233, 123, 0.3);
+        }
+        
+        .category-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .category-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 14px 20px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            backdrop-filter: blur(15px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .category-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .category-btn:hover::before {
+            left: 100%;
+        }
+        
+        .category-btn:hover {
+            background: var(--glass-border);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .category-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .quote-text {
+            font-size: 2.2rem;
+            line-height: 1.4;
+            margin: 50px 0;
+            font-weight: 400;
+            font-style: italic;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 2;
+            min-height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            animation: fadeInText 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        
+        @keyframes fadeInText {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .quote-author {
+            font-size: 1.3rem;
+            color: var(--accent-gold);
+            margin-bottom: 50px;
+            font-weight: 600;
+            position: relative;
+            z-index: 2;
+            opacity: 0;
+            animation: fadeInAuthor 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.4s forwards;
+        }
+        
+        @keyframes fadeInAuthor {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .quote-author::before {
+            content: '— ';
+            font-style: normal;
+        }
+        
+        .quote-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .stat-item {
+            text-align: center;
+            background: var(--glass-bg);
+            padding: 20px;
+            border-radius: 16px;
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            flex: 1;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 18px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: inherit;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(-2px);
+        }
+        
+        .btn.secondary {
+            background: var(--secondary-gradient);
+            box-shadow: 0 8px 25px rgba(245, 87, 108, 0.3);
+        }
+        
+        .btn.secondary:hover {
+            box-shadow: 0 12px 35px rgba(245, 87, 108, 0.4);
+        }
+        
+        .btn.success {
+            background: var(--success-gradient);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+        }
+        
+        .btn.success:hover {
+            box-shadow: 0 12px 35px rgba(79, 172, 254, 0.4);
+        }
+        
+        .btn.warning {
+            background: var(--warning-gradient);
+            color: #000;
+            box-shadow: 0 8px 25px rgba(67, 233, 123, 0.3);
+        }
+        
+        .btn.warning:hover {
+            box-shadow: 0 12px 35px rgba(67, 233, 123, 0.4);
+        }
+        
+        .advanced-controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .advanced-controls .btn {
+            padding: 12px 20px;
+            font-size: 0.9rem;
+        }
+        
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, var(--accent-gold), transparent);
+            border-radius: 50%;
+            animation: sparkle 6s infinite ease-in-out;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1) rotate(180deg); }
+        }
+        
+        .magic-burst {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.8), transparent);
+            animation: magicBurst 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            pointer-events: none;
+            z-index: 15;
+        }
+        
+        @keyframes magicBurst {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(4); opacity: 0; }
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border-radius: 25px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            border: 1px solid var(--glass-border);
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: var(--glass-border);
+            color: var(--text-primary);
+        }
+        
+        .favorites-grid {
+            display: grid;
+            gap: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .favorite-item {
+            background: var(--glass-bg);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+        }
+        
+        .favorite-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .favorite-quote {
+            font-size: 1.1rem;
+            font-style: italic;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        .favorite-author {
+            font-size: 0.9rem;
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+        
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .analytics-card {
+            background: var(--glass-bg);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .analytics-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .analytics-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .analytics-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .search-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            font-size: 1rem;
+            backdrop-filter: blur(15px);
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+        }
+        
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        .reading-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            z-index: 20;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 30px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 350px;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .notification-icon {
+            font-size: 1.2rem;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .notification-message {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .theme-switcher {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .theme-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid var(--glass-border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        }
+        
+        .theme-btn.active {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        }
+        
+        .export-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .export-btn-option {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .export-btn-option:hover {
+            background: var(--glass-border);
+            transform: translateY(-2px);
+        }
+        
+        .word-count {
+            position: absolute;
+            bottom: 20px;
+            left: 30px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: var(--glass-bg);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .reading-time {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: var(--glass-bg);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .sentiment-display {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .sentiment-item {
+            background: var(--glass-bg);
+            padding: 15px;
+            border-radius: 16px;
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .sentiment-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+        
+        .sentiment-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .sentiment-positive {
+            color: #43e97b;
+        }
+        
+        .sentiment-negative {
+            color: #f5576c;
+        }
+        
+        .sentiment-neutral {
+            color: #4facfe;
+        }
+        
+        .quote-history {
+            position: absolute;
+            top: 90px;
+            right: 40px;
+            z-index: 20;
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 15px;
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            max-height: 70vh;
+            overflow-y: auto;
+            width: 300px;
+            display: none;
+        }
+        
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .history-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .history-item {
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .history-quote {
+            font-size: 0.9rem;
+            font-style: italic;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .history-author {
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+            margin-top: 5px;
+        }
+        
+        .history-toggle {
+            position: absolute;
+            top: 90px;
+            right: 40px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 10px 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            z-index: 20;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .history-toggle:hover {
+            background: var(--glass-border);
+            transform: translateY(-2px);
+        }
+        
+        .export-modal-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .export-preview {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            min-height: 150px;
+            font-style: italic;
+            position: relative;
+        }
+        
+        .export-preview::after {
+            content: 'Preview';
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 0 20px;
+            }
+            
+            .main-container {
+                padding: 20px;
+            }
+            
+            .quote-container {
+                padding: 30px;
+            }
+            
+            .quote-text {
+                font-size: 1.6rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .category-selector {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .quote-stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .sentiment-display {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .quote-history {
+                position: relative;
+                top: 0;
+                right: 0;
+                width: 100%;
+                max-height: 200px;
+                margin-top: 20px;
+            }
+            
+            .history-toggle {
+                position: relative;
+                top: 0;
+                right: 0;
+                margin-top: 20px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="three-container"></div>
+    <div class="particles" id="particles"></div>
+    
+    <div class="reading-progress" id="reading-progress"></div>
+    
+    <div class="header">
+        <div class="logo">QuoteFlow <sup style="font-size: 0.7rem; background: var(--accent-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">PRO</sup></div>
+        <div class="header-controls">
+            <div class="theme-switcher">
+                <div class="theme-btn" data-theme="dark" style="background: linear-gradient(45deg, #1a1a2e, #0f3460)"></div>
+                <div class="theme-btn" data-theme="ocean" style="background: linear-gradient(45deg, #667eea, #764ba2)"></div>
+                <div class="theme-btn active" data-theme="sunset" style="background: linear-gradient(45deg, #f093fb, #f5576c)"></div>
+            </div>
+            <button class="analytics-btn" id="analytics-btn"><i class="fas fa-chart-line"></i> Analytics</button>
+            <button class="export-btn" id="export-btn"><i class="fas fa-file-export"></i> Export</button>
+            <button class="settings-btn" id="settings-btn"><i class="fas fa-cog"></i> Settings</button>
+        </div>
+    </div>
+    
+    <button class="history-toggle" id="history-toggle"><i class="fas fa-history"></i> View History</button>
+    <div class="quote-history" id="quote-history">
+        <div class="history-header">
+            <div class="history-title">Recent Quotes</div>
+            <button class="close-btn" id="close-history">&times;</button>
+        </div>
+        <div class="history-list" id="history-list">
+            <!-- History items will be added here -->
+        </div>
+    </div>
+    
+    <div class="ui-overlay">
+        <div class="main-container">
+            <div class="quote-container inspirational" id="quote-container">
+                <div class="quote-meta">
+                    <div class="quote-number" id="quote-number">Quote #1</div>
+                    <div class="quote-difficulty" id="quote-difficulty">Beginner</div>
+                </div>
+                
+                <div class="search-container">
+                    <input type="text" class="search-input" id="search-input" placeholder="🔍 Search quotes by keyword or author...">
+                </div>
+                
+                <div class="category-selector">
+                    <button class="category-btn active" data-category="inspirational"><i class="fas fa-book"></i> Inspirational</button>
+                    <button class="category-btn" data-category="wisdom"><i class="fas fa-brain"></i> Wisdom</button>
+                    <button class="category-btn" data-category="success"><i class="fas fa-trophy"></i> Success</button>
+                    <button class="category-btn" data-category="life"><i class="fas fa-leaf"></i> Life</button>
+                    <button class="category-btn" data-category="love"><i class="fas fa-heart"></i> Love</button>
+                    <button class="category-btn" data-category="motivational"><i class="fas fa-fire"></i> Motivational</button>
+                    <button class="category-btn" data-category="philosophy"><i class="fas fa-atom"></i> Philosophy</button>
+                    <button class="category-btn" data-category="creativity"><i class="fas fa-paint-brush"></i> Creativity</button>
+                </div>
+                
+                <div class="quote-text" id="quote-text">
+                    "The strongest version of you already exists. It's just waiting for you to decide to become it."
+                </div>
+                
+                <div class="quote-author" id="quote-author">Unknown</div>
+                
+                <div class="quote-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="total-quotes">847</span>
+                        <span class="stat-label">Total Quotes</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="favorites-count">12</span>
+                        <span class="stat-label">Favorites</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="sessions-count">34</span>
+                        <span class="stat-label">Sessions</span>
+                    </div>
+                </div>
+                
+                <div class="sentiment-display">
+                    <div class="sentiment-item">
+                        <div class="sentiment-label">Positive</div>
+                        <div class="sentiment-value sentiment-positive" id="sentiment-positive">85%</div>
+                    </div>
+                    <div class="sentiment-item">
+                        <div class="sentiment-label">Neutral</div>
+                        <div class="sentiment-value sentiment-neutral" id="sentiment-neutral">10%</div>
+                    </div>
+                    <div class="sentiment-item">
+                        <div class="sentiment-label">Negative</div>
+                        <div class="sentiment-value sentiment-negative" id="sentiment-negative">5%</div>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn" id="new-quote-btn"><i class="fas fa-magic"></i> New Quote</button>
+                    <button class="btn secondary" id="share-btn"><i class="fas fa-share-alt"></i> Share</button>
+                    <button class="btn success" id="favorite-btn"><i class="fas fa-star"></i> Favorite</button>
+                    <button class="btn warning" id="surprise-btn"><i class="fas fa-dice"></i> Surprise Me</button>
+                </div>
+                
+                <div class="advanced-controls">
+                    <button class="btn" id="read-aloud-btn"><i class="fas fa-volume-up"></i> Read Aloud</button>
+                    <button class="btn secondary" id="translate-btn"><i class="fas fa-globe"></i> Translate</button>
+                    <button class="btn success" id="analyze-btn"><i class="fas fa-chart-pie"></i> Analyze</button>
+                    <button class="btn warning" id="bookmark-btn"><i class="fas fa-bookmark"></i> Bookmark</button>
+                </div>
+                
+                <div class="word-count" id="word-count">Words: 0</div>
+                <div class="reading-time" id="reading-time">Reading time: 0s</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div class="modal" id="favorites-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-star"></i> Your Favorites</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="favorites-grid" id="favorites-grid">
+                <!-- Favorites will be populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="analytics-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-chart-line"></i> Analytics Dashboard</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <span class="analytics-value">847</span>
+                    <span class="analytics-label">Total Quotes</span>
+                </div>
+                <div class="analytics-card">
+                    <span class="analytics-value">34</span>
+                    <span class="analytics-label">Sessions</span>
+                </div>
+                <div class="analytics-card">
+                    <span class="analytics-value">76</span>
+                    <span class="analytics-label">Favorites</span>
+                </div>
+                <div class="analytics-card">
+                    <span class="analytics-value">24</span>
+                    <span class="analytics-label">Categories</span>
+                </div>
+                <div class="analytics-card">
+                    <span class="analytics-value">2.4K</span>
+                    <span class="analytics-label">Views</span>
+                </div>
+                <div class="analytics-card">
+                    <span class="analytics-value">82%</span>
+                    <span class="analytics-label">Engagement</span>
+                </div>
+            </div>
+            <div style="margin-top: 30px; text-align: center;">
+                <canvas id="analytics-chart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="export-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-file-export"></i> Export Quote</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="export-modal-content">
+                <div class="export-preview" id="export-preview">
+                    "The strongest version of you already exists. It's just waiting for you to decide to become it." — Unknown
+                </div>
+                <div class="export-options">
+                    <button class="export-btn-option" data-format="text"><i class="fas fa-file-alt"></i> Text</button>
+                    <button class="export-btn-option" data-format="image"><i class="fas fa-image"></i> Image</button>
+                    <button class="export-btn-option" data-format="pdf"><i class="fas fa-file-pdf"></i> PDF</button>
+                    <button class="export-btn-option" data-format="json"><i class="fas fa-code"></i> JSON</button>
+                    <button class="export-btn-option" data-format="csv"><i class="fas fa-table"></i> CSV</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification">
+        <div class="notification-header">
+            <span class="notification-icon">💖</span>
+            <span class="notification-title">Added to Favorites</span>
+        </div>
+        <div class="notification-message">This quote has been added to your favorites collection.</div>
+    </div>
+
+    <script>
+        // Quote database with multiple categories
+        const quotes = [
+            {
+                text: "The strongest version of you already exists. It's just waiting for you to decide to become it.",
+                author: "Unknown",
+                category: "inspirational",
+                difficulty: "Beginner",
+                sentiment: { positive: 90, neutral: 5, negative: 5 }
+            },
+            {
+                text: "Success is not final, failure is not fatal: It is the courage to continue that counts.",
+                author: "Winston Churchill",
+                category: "success",
+                difficulty: "Intermediate",
+                sentiment: { positive: 85, neutral: 10, negative: 5 }
+            },
+            {
+                text: "The only true wisdom is in knowing you know nothing.",
+                author: "Socrates",
+                category: "wisdom",
+                difficulty: "Advanced",
+                sentiment: { positive: 70, neutral: 20, negative: 10 }
+            },
+            {
+                text: "Life is what happens when you're busy making other plans.",
+                author: "John Lennon",
+                category: "life",
+                difficulty: "Beginner",
+                sentiment: { positive: 60, neutral: 30, negative: 10 }
+            },
+            {
+                text: "The best thing to hold onto in life is each other.",
+                author: "Audrey Hepburn",
+                category: "love",
+                difficulty: "Intermediate",
+                sentiment: { positive: 95, neutral: 5, negative: 0 }
+            },
+            {
+                text: "Believe you can and you're halfway there.",
+                author: "Theodore Roosevelt",
+                category: "motivational",
+                difficulty: "Beginner",
+                sentiment: { positive: 90, neutral: 5, negative: 5 }
+            },
+            {
+                text: "The unexamined life is not worth living.",
+                author: "Socrates",
+                category: "philosophy",
+                difficulty: "Advanced",
+                sentiment: { positive: 65, neutral: 25, negative: 10 }
+            },
+            {
+                text: "Creativity is intelligence having fun.",
+                author: "Albert Einstein",
+                category: "creativity",
+                difficulty: "Intermediate",
+                sentiment: { positive: 85, neutral: 10, negative: 5 }
+            },
+            {
+                text: "The only way to do great work is to love what you do.",
+                author: "Steve Jobs",
+                category: "success",
+                difficulty: "Intermediate",
+                sentiment: { positive: 90, neutral: 5, negative: 5 }
+            },
+            {
+                text: "In the middle of every difficulty lies opportunity.",
+                author: "Albert Einstein",
+                category: "inspirational",
+                difficulty: "Intermediate",
+                sentiment: { positive: 80, neutral: 15, negative: 5 }
+            }
+        ];
+
+        // Initialize application state
+        let state = {
+            currentQuote: {},
+            favorites: [],
+            history: [],
+            quoteCount: 1,
+            sessionsCount: 1,
+            favoritesCount: 0,
+            currentCategory: "inspirational",
+            isReading: false,
+            isAnalyzed: false
+        };
+
+        // DOM Elements
+        const elements = {
+            quoteText: document.getElementById('quote-text'),
+            quoteAuthor: document.getElementById('quote-author'),
+            quoteNumber: document.getElementById('quote-number'),
+            quoteDifficulty: document.getElementById('quote-difficulty'),
+            totalQuotes: document.getElementById('total-quotes'),
+            favoritesCount: document.getElementById('favorites-count'),
+            sessionsCount: document.getElementById('sessions-count'),
+            wordCount: document.getElementById('word-count'),
+            readingTime: document.getElementById('reading-time'),
+            favoritesModal: document.getElementById('favorites-modal'),
+            analyticsModal: document.getElementById('analytics-modal'),
+            exportModal: document.getElementById('export-modal'),
+            favoritesGrid: document.getElementById('favorites-grid'),
+            historyList: document.getElementById('history-list'),
+            quoteHistory: document.getElementById('quote-history'),
+            historyToggle: document.getElementById('history-toggle'),
+            notification: document.getElementById('notification'),
+            sentimentPositive: document.getElementById('sentiment-positive'),
+            sentimentNeutral: document.getElementById('sentiment-neutral'),
+            sentimentNegative: document.getElementById('sentiment-negative'),
+            exportPreview: document.getElementById('export-preview'),
+            searchInput: document.getElementById('search-input')
+        };
+
+        // Initialize Three.js background
+        function initThreeJS() {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('three-container').appendChild(renderer.domElement);
+
+            // Create particles
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particlesCount = 2000;
+            const posArray = new Float32Array(particlesCount * 3);
+            
+            for (let i = 0; i < particlesCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 10;
+            }
+            
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const particlesMaterial = new THREE.PointsMaterial({
+                size: 0.025,
+                color: 0x667eea,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particlesMesh);
+            camera.position.z = 3;
+
+            // Animate particles
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                particlesMesh.rotation.y += 0.001;
+                particlesMesh.rotation.x += 0.0005;
+                
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // Create particle effects
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            particlesContainer.innerHTML = '';
+            
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Random position
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                
+                // Random animation delay
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Create magic burst effect
+        function createMagicBurst(x, y) {
+            const burst = document.createElement('div');
+            burst.classList.add('magic-burst');
+            burst.style.left = `${x}px`;
+            burst.style.top = `${y}px`;
+            
+            document.body.appendChild(burst);
+            
+            setTimeout(() => {
+                burst.remove();
+            }, 1000);
+        }
+
+        // Initialize application
+        function initApp() {
+            // Load initial quote
+            loadRandomQuote();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Initialize Three.js background
+            initThreeJS();
+            
+            // Create particles
+            createParticles();
+            
+            // Initialize stats
+            updateStats();
+        }
+
+        // Load a random quote
+        function loadRandomQuote() {
+            // Filter quotes by current category
+            const filteredQuotes = quotes.filter(quote => quote.category === state.currentCategory);
+            
+            // Get random quote
+            const randomIndex = Math.floor(Math.random() * filteredQuotes.length);
+            const quote = filteredQuotes[randomIndex];
+            
+            // Update state
+            state.currentQuote = quote;
+            state.quoteCount++;
+            state.history.unshift(quote);
+            if (state.history.length > 10) state.history.pop();
+            
+            // Update UI
+            updateQuoteDisplay(quote);
+            updateHistoryDisplay();
+            updateWordCount(quote.text);
+        }
+
+        // Update quote display with animation
+        function updateQuoteDisplay(quote) {
+            // Animate out current quote
+            elements.quoteText.style.animation = 'none';
+            elements.quoteAuthor.style.animation = 'none';
+            setTimeout(() => {
+                elements.quoteText.style.opacity = '0';
+                elements.quoteAuthor.style.opacity = '0';
+                
+                // Update content
+                setTimeout(() => {
+                    elements.quoteText.textContent = `"${quote.text}"`;
+                    elements.quoteAuthor.textContent = quote.author;
+                    elements.quoteNumber.textContent = `Quote #${state.quoteCount}`;
+                    elements.quoteDifficulty.textContent = quote.difficulty;
+                    
+                    // Animate in new quote
+                    elements.quoteText.style.animation = 'fadeInText 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+                    elements.quoteAuthor.style.animation = 'fadeInAuthor 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.4s forwards';
+                    
+                    // Update export preview
+                    elements.exportPreview.textContent = `"${quote.text}" — ${quote.author}`;
+                    
+                    // Reset analysis
+                    state.isAnalyzed = false;
+                }, 300);
+            }, 50);
+        }
+
+        // Update history display
+        function updateHistoryDisplay() {
+            elements.historyList.innerHTML = '';
+            
+            state.history.forEach((quote, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.classList.add('history-item');
+                historyItem.innerHTML = `
+                    <div class="history-quote">"${quote.text}"</div>
+                    <div class="history-author">${quote.author}</div>
+                `;
+                
+                historyItem.addEventListener('click', () => {
+                    state.currentQuote = quote;
+                    updateQuoteDisplay(quote);
+                    createMagicBurst(window.innerWidth/2, window.innerHeight/2);
+                });
+                
+                elements.historyList.appendChild(historyItem);
+            });
+        }
+
+        // Update word count and reading time
+        function updateWordCount(text) {
+            const wordCount = text.split(/\s+/).length;
+            const readingTime = Math.ceil(wordCount / 200); // 200 words per minute
+            
+            elements.wordCount.textContent = `Words: ${wordCount}`;
+            elements.readingTime.textContent = `Reading time: ${readingTime} min`;
+        }
+
+        // Update sentiment display
+        function updateSentimentDisplay(sentiment) {
+            elements.sentimentPositive.textContent = `${sentiment.positive}%`;
+            elements.sentimentNeutral.textContent = `${sentiment.neutral}%`;
+            elements.sentimentNegative.textContent = `${sentiment.negative}%`;
+            
+            // Animate the display
+            elements.sentimentPositive.parentElement.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                elements.sentimentPositive.parentElement.style.transform = 'scale(1)';
+            }, 300);
+        }
+
+        // Update stats
+        function updateStats() {
+            elements.totalQuotes.textContent = quotes.length;
+            elements.favoritesCount.textContent = state.favoritesCount;
+            elements.sessionsCount.textContent = state.sessionsCount;
+        }
+
+        // Show notification
+        function showNotification(title, message, icon = "💖") {
+            const notification = document.getElementById('notification');
+            notification.querySelector('.notification-icon').textContent = icon;
+            notification.querySelector('.notification-title').textContent = title;
+            notification.querySelector('.notification-message').textContent = message;
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // New quote button
+            document.getElementById('new-quote-btn').addEventListener('click', () => {
+                loadRandomQuote();
+                createMagicBurst(window.innerWidth/2, window.innerHeight/2);
+            });
+            
+            // Favorite button
+            document.getElementById('favorite-btn').addEventListener('click', () => {
+                if (!state.favorites.includes(state.currentQuote)) {
+                    state.favorites.push(state.currentQuote);
+                    state.favoritesCount++;
+                    updateStats();
+                    showNotification('Added to Favorites', 'This quote has been added to your favorites collection.', '💖');
+                } else {
+                    showNotification('Already Favorited', 'This quote is already in your favorites collection.', '⭐');
+                }
+            });
+            
+            // Surprise me button
+            document.getElementById('surprise-btn').addEventListener('click', () => {
+                // Switch to a random category
+                const categories = ['inspirational', 'wisdom', 'success', 'life', 'love', 'motivational', 'philosophy', 'creativity'];
+                const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+                
+                // Update category
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.category === randomCategory) {
+                        btn.classList.add('active');
+                        state.currentCategory = randomCategory;
+                    }
+                });
+                
+                loadRandomQuote();
+                createMagicBurst(window.innerWidth/2, window.innerHeight/2);
+            });
+            
+            // Category buttons
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.currentCategory = btn.dataset.category;
+                    loadRandomQuote();
+                });
+            });
+            
+            // Analytics button
+            document.getElementById('analytics-btn').addEventListener('click', () => {
+                elements.analyticsModal.style.display = 'flex';
+            });
+            
+            // Export button
+            document.getElementById('export-btn').addEventListener('click', () => {
+                elements.exportModal.style.display = 'flex';
+            });
+            
+            // Settings button
+            document.getElementById('settings-btn').addEventListener('click', () => {
+                showNotification('Settings', 'Customize your QuoteFlow experience', '⚙️');
+            });
+            
+            // Read aloud button
+            document.getElementById('read-aloud-btn').addEventListener('click', () => {
+                if (!state.isReading) {
+                    state.isReading = true;
+                    showNotification('Read Aloud', 'Reading quote aloud...', '🔊');
+                    // In a real app, we would use the Web Speech API here
+                } else {
+                    state.isReading = false;
+                    showNotification('Read Aloud', 'Reading stopped', '⏹️');
+                }
+            });
+            
+            // Translate button
+            document.getElementById('translate-btn').addEventListener('click', () => {
+                showNotification('Translation', 'Translating quote...', '🌐');
+                // In a real app, we would integrate a translation API here
+            });
+            
+            // Analyze button
+            document.getElementById('analyze-btn').addEventListener('click', () => {
+                if (!state.isAnalyzed) {
+                    updateSentimentDisplay(state.currentQuote.sentiment);
+                    state.isAnalyzed = true;
+                    showNotification('Analysis', 'Quote sentiment analyzed', '📊');
+                } else {
+                    showNotification('Analysis', 'Quote already analyzed', '📈');
+                }
+            });
+            
+            // Bookmark button
+            document.getElementById('bookmark-btn').addEventListener('click', () => {
+                showNotification('Bookmark', 'Current session bookmarked', '🔖');
+            });
+            
+            // Share button
+            document.getElementById('share-btn').addEventListener('click', () => {
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'QuoteFlow Quote',
+                        text: `${state.currentQuote.text} - ${state.currentQuote.author}`,
+                        url: window.location.href
+                    }).catch(console.error);
+                } else {
+                    showNotification('Share Quote', 'Quote copied to clipboard', '📋');
+                    // Fallback: Copy to clipboard
+                    navigator.clipboard.writeText(`${state.currentQuote.text} - ${state.currentQuote.author}`);
+                }
+            });
+            
+            // Close buttons for modals
+            document.querySelectorAll('.close-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.style.display = 'none';
+                    });
+                });
+            });
+            
+            // Click outside modal to close
+            window.addEventListener('click', (e) => {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Theme switcher
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // In a real app, we would change the theme here
+                    showNotification('Theme Changed', `Switched to ${btn.dataset.theme} theme`, '🎨');
+                });
+            });
+            
+            // Export options
+            document.querySelectorAll('.export-btn-option').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const format = btn.dataset.format;
+                    showNotification('Export Started', `Exporting as ${format.toUpperCase()}...`, '⏳');
+                    
+                    // Simulate export delay
+                    setTimeout(() => {
+                        showNotification('Export Complete', `Quote exported as ${format.toUpperCase()}`, '✅');
+                    }, 1500);
+                });
+            });
+            
+            // History toggle
+            elements.historyToggle.addEventListener('click', () => {
+                elements.quoteHistory.style.display = 'block';
+            });
+            
+            document.getElementById('close-history').addEventListener('click', () => {
+                elements.quoteHistory.style.display = 'none';
+            });
+            
+            // Search functionality
+            elements.searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                if (searchTerm.length > 2) {
+                    const results = quotes.filter(quote => 
+                        quote.text.toLowerCase().includes(searchTerm) || 
+                        quote.author.toLowerCase().includes(searchTerm)
+                    );
+                    
+                    if (results.length > 0) {
+                        const randomResult = results[Math.floor(Math.random() * results.length)];
+                        state.currentQuote = randomResult;
+                        updateQuoteDisplay(randomResult);
+                    }
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Spacebar for new quote
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    loadRandomQuote();
+                    createMagicBurst(window.innerWidth/2, window.innerHeight/2);
+                }
+                
+                // F for favorite
+                if (e.code === 'KeyF') {
+                    if (!state.favorites.includes(state.currentQuote)) {
+                        state.favorites.push(state.currentQuote);
+                        state.favoritesCount++;
+                        updateStats();
+                        showNotification('Added to Favorites', 'This quote has been added to your favorites collection.', '💖');
+                    }
+                }
+            });
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
